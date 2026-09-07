@@ -55,7 +55,7 @@
                             Productos
                         </a>
                     </li>
-                    @if (Auth::check() && Auth::user()->isAdmin())
+                    @if (Auth::check() && Auth::user()->hasRole('admin'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('usuarios.*') ? 'active' : '' }}" href="{{ route('usuarios.index') }}">
                                 Usuarios
@@ -68,8 +68,8 @@
                     @auth
                         <li class="nav-item me-lg-3 text-white-50 small mb-2 mb-lg-0">
                             <span class="text-white fw-semibold">{{ Auth::user()->name }}</span>
-                            <span class="badge {{ Auth::user()->isAdmin() ? 'bg-primary' : 'bg-secondary' }} ms-1">
-                                {{ ucfirst(Auth::user()->role) }}
+                            <span class="badge {{ Auth::user()->hasRole('admin') ? 'bg-primary' : 'bg-secondary' }} ms-1">
+                                {{ ucfirst(Auth::user()->getRoleNames()->first() ?? 'Usuario') }}
                             </span>
                         </li>
                         <li class="nav-item">

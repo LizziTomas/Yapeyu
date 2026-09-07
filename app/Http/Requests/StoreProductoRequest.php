@@ -11,7 +11,7 @@ class StoreProductoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user() !== null && $this->user()->isAdmin();
+        return $this->user() !== null && $this->user()->can('crear productos');
     }
 
     /**

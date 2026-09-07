@@ -9,7 +9,8 @@ test('unauthenticated users are redirected to login when accessing productos', f
 });
 
 test('vendedor can view active products list and search', function () {
-    $vendedor = User::factory()->create(['role' => 'vendedor']);
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
 
     $productoActivo = Producto::factory()->create([
         'nombre' => 'Tornillo Phillips 1/2',
@@ -31,7 +32,8 @@ test('vendedor can view active products list and search', function () {
 });
 
 test('vendedor cannot access create, edit, update, or destroy routes', function () {
-    $vendedor = User::factory()->create(['role' => 'vendedor']);
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
     $producto = Producto::factory()->create(['activo' => true]);
 
     $this->actingAs($vendedor)->get(route('productos.create'))->assertStatus(403);
@@ -58,7 +60,8 @@ test('vendedor cannot access create, edit, update, or destroy routes', function 
 });
 
 test('admin can view create form and store a new product', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
 
     $this->actingAs($admin)->get(route('productos.create'))->assertStatus(200);
 
@@ -83,7 +86,8 @@ test('admin can view create form and store a new product', function () {
 });
 
 test('admin can edit and update a product', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
     $producto = Producto::factory()->create([
         'nombre' => 'Martillo Galponero',
         'precio_costo' => 2500.00,
@@ -115,7 +119,8 @@ test('admin can edit and update a product', function () {
 });
 
 test('admin can deactivate product (soft deactivation without physical deletion)', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
     $producto = Producto::factory()->create([
         'nombre' => 'Lija al Agua 240',
         'activo' => true,
@@ -137,7 +142,8 @@ test('admin can deactivate product (soft deactivation without physical deletion)
 });
 
 test('inactive products are excluded from the main listing and search', function () {
-    $user = User::factory()->create(['role' => 'vendedor']);
+    $user = User::factory()->create();
+    $user->assignRole('vendedor');
 
     Producto::factory()->create([
         'nombre' => 'Producto Activo Visible',
@@ -157,7 +163,8 @@ test('inactive products are excluded from the main listing and search', function
 });
 
 test('inventory totals are computed correctly based only on active products', function () {
-    $user = User::factory()->create(['role' => 'vendedor']);
+    $user = User::factory()->create();
+    $user->assignRole('vendedor');
 
     // Limpiar productos previos para prueba de totales exacta
     Producto::query()->delete();
@@ -195,7 +202,8 @@ test('inventory totals are computed correctly based only on active products', fu
 });
 
 test('validation rejects negative stock and invalid prices', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
 
     $response = $this->actingAs($admin)->post(route('productos.store'), [
         'nombre' => '',

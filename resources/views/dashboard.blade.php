@@ -19,8 +19,8 @@
                     </div>
                     <div class="mb-3">
                         <span class="text-muted small d-block">Rol asignado</span>
-                        <span class="badge {{ Auth::user()->isAdmin() ? 'bg-primary' : 'bg-secondary' }}">
-                            {{ ucfirst(Auth::user()->role) }}
+                        <span class="badge {{ Auth::user()->hasRole('admin') ? 'bg-primary' : 'bg-secondary' }}">
+                            {{ ucfirst(Auth::user()->getRoleNames()->first() ?? 'Usuario') }}
                         </span>
                     </div>
                 </div>
@@ -33,7 +33,7 @@
                     <div>
                         <h2 class="h6 fw-semibold text-muted text-uppercase mb-3">Productos y Stock</h2>
                         <p class="text-muted small">
-                            {{ Auth::user()->isAdmin() ? 'Administra el catálogo de productos, precios, niveles de stock y valorización del inventario.' : 'Consulta el catálogo de productos activos, precios de venta y disponibilidad de stock en tiempo real.' }}
+                            {{ Auth::user()->hasRole('admin') ? 'Administra el catálogo de productos, precios, niveles de stock y valorización del inventario.' : 'Consulta el catálogo de productos activos, precios de venta y disponibilidad de stock en tiempo real.' }}
                         </p>
                     </div>
                     <div>
@@ -45,7 +45,7 @@
             </div>
         </div>
 
-        @if (Auth::user()->isAdmin())
+        @if (Auth::user()->hasRole('admin'))
             <div class="col-md-6 col-lg-4">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-body p-4 d-flex flex-column justify-content-between">

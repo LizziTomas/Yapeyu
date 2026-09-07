@@ -1,11 +1,11 @@
 <x-app-layout>
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
         <h1 class="h4 mb-0 fw-semibold">Gestión de Productos</h1>
-        @if (Auth::user()->isAdmin())
+        @can('crear productos')
             <a href="{{ route('productos.create') }}" class="btn btn-primary btn-sm">
                 <i class="bi bi-plus-lg me-1"></i> Nuevo Producto
             </a>
-        @endif
+        @endcan
     </div>
 
     <!-- Resumen de Totales del Inventario -->
@@ -81,7 +81,7 @@
                     <th scope="col" class="text-center" style="width: 100px;">Stock Mín.</th>
                     <th scope="col" class="text-end" style="width: 130px;">Valor a Costo</th>
                     <th scope="col" class="text-end" style="width: 130px;">Valor Potencial</th>
-                    @if (Auth::user()->isAdmin())
+                    @if (Auth::user()->hasRole('admin'))
                         <th scope="col" class="text-end pe-3" style="width: 150px;">Acciones</th>
                     @endif
                 </tr>
@@ -105,7 +105,7 @@
                         <td class="text-center text-muted">{{ $producto->stock_minimo }}</td>
                         <td class="text-end text-muted small">$ {{ number_format($producto->valor_stock_costo, 2, ',', '.') }}</td>
                         <td class="text-end text-success small fw-medium">$ {{ number_format($producto->valor_potencial_venta, 2, ',', '.') }}</td>
-                        @if (Auth::user()->isAdmin())
+                        @if (Auth::user()->hasRole('admin'))
                             <td class="text-end pe-3">
                                 <div class="btn-group btn-group-sm" role="group">
                                     <a href="{{ route('productos.edit', $producto) }}" 
@@ -131,7 +131,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ Auth::user()->isAdmin() ? 8 : 7 }}" class="text-center text-muted py-4">
+                        <td colspan="{{ Auth::user()->hasRole('admin') ? 8 : 7 }}" class="text-center text-muted py-4">
                             No se encontraron productos activos registrados.
                         </td>
                     </tr>

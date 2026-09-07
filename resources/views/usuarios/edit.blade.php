@@ -50,8 +50,8 @@
                                     id="role" 
                                     name="role" 
                                     required>
-                                <option value="vendedor" {{ old('role', $user->role) === 'vendedor' ? 'selected' : '' }}>Vendedor</option>
-                                <option value="admin" {{ old('role', $user->role) === 'admin' ? 'selected' : '' }}>Administrador</option>
+                                <option value="vendedor" {{ old('role', $user->getRoleNames()->first()) === 'vendedor' ? 'selected' : '' }}>Vendedor</option>
+                                <option value="admin" {{ old('role', $user->getRoleNames()->first()) === 'admin' ? 'selected' : '' }}>Administrador</option>
                             </select>
                             @error('role')
                                 <div class="invalid-feedback small">{{ $message }}</div>

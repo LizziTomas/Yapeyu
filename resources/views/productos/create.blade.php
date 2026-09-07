@@ -21,7 +21,7 @@
                                    id="nombre" 
                                    name="nombre" 
                                    value="{{ old('nombre') }}" 
-                                   placeholder="Ej. Tornillo Autoperforante 1/2"
+                                   placeholder="Ej. Bombacha de campo"
                                    required 
                                    autofocus>
                             @error('nombre')

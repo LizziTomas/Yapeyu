@@ -20,14 +20,17 @@ class UserController extends Controller
     {
         $search = $request->input('search');
 
-        $users = User::when($search, function ($query, $search) {
-            $query->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('role', 'like', "%{$search}%");
-        })
-        ->orderBy('id', 'asc')
-        ->paginate(10)
-        ->withQueryString();
+        $users = User::with('roles')
+            ->when($search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhereHas('roles', function ($q) use ($search) {
+                          $q->where('name', 'like', "%{$search}%");
+                      });
+            })
+            ->orderBy('id', 'asc')
+            ->paginate(10)
+            ->withQueryString();
 
         return view('usuarios.index', compact('users', 'search'));
     }
@@ -41,18 +44,19 @@ class UserController extends Controller
     }
 
     /**
-     * Almacena un nuevo usuario en la base de datos.
+     * Almacena un nuevo usuario en la base de datos y le asigna su rol con Spatie.
      */
     public function store(StoreUserRequest $request): RedirectResponse
     {
         $validated = $request->validated();
 
-        User::create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'role' => $validated['role'],
             'password' => Hash::make($validated['password']),
         ]);
+
+        $user->assignRole($validated['role']);
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario creado exitosamente.');
     }
@@ -66,7 +70,7 @@ class UserController extends Controller
     }
 
     /**
-     * Actualiza un usuario existente en la base de datos.
+     * Actualiza un usuario existente y sincroniza su rol con Spatie.
      */
     public function update(UpdateUserRequest $request, User $usuario): RedirectResponse
     {
@@ -75,7 +79,6 @@ class UserController extends Controller
         $data = [
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'role' => $validated['role'],
         ];
 
         if (! empty($validated['password'])) {
@@ -83,6 +86,7 @@ class UserController extends Controller
         }
 
         $usuario->update($data);
+        $usuario->syncRoles([$validated['role']]);
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado exitosamente.');
     }
