@@ -85,6 +85,62 @@ class Caja extends Model
     }
 
     /**
+     * Suma total de ventas completadas en efectivo para esta caja.
+     */
+    public function totalVentasEfectivo(): float
+    {
+        return (float) $this->ventas()
+            ->where('estado', 'completada')
+            ->where('medio_pago', 'efectivo')
+            ->sum('total');
+    }
+
+    /**
+     * Suma total de ventas completadas por transferencia para esta caja.
+     */
+    public function totalVentasTransferencia(): float
+    {
+        return (float) $this->ventas()
+            ->where('estado', 'completada')
+            ->where('medio_pago', 'transferencia')
+            ->sum('total');
+    }
+
+    /**
+     * Suma total de ventas completadas con tarjeta para esta caja.
+     */
+    public function totalVentasTarjeta(): float
+    {
+        return (float) $this->ventas()
+            ->where('estado', 'completada')
+            ->where('medio_pago', 'tarjeta')
+            ->sum('total');
+    }
+
+    /**
+     * Total general vendido en todos los medios de pago (únicamente ventas completadas).
+     */
+    public function totalVendido(): float
+    {
+        return (float) $this->ventas()
+            ->where('estado', 'completada')
+            ->sum('total');
+    }
+
+    /**
+     * Dinero físico esperado en la caja (Monto inicial + Ventas en efectivo).
+     * Si la caja se encuentra cerrada, retorna el monto_esperado congelado en el cierre.
+     */
+    public function dineroEsperado(): float
+    {
+        if ($this->estaCerrada() && $this->monto_esperado !== null) {
+            return (float) $this->monto_esperado;
+        }
+
+        return (float) $this->monto_inicial + $this->totalVentasEfectivo();
+    }
+
+    /**
      * Scope para filtrar cajas en estado abierta.
      */
     public function scopeAbiertas(Builder $query): Builder

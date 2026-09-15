@@ -123,11 +123,13 @@ class CajaController extends Controller
                 ->with('error', 'Esta caja ya se encuentra cerrada.');
         }
 
+        $montoEsperadoCalculado = $caja->dineroEsperado();
         $montoReal = (float) $request->validated('monto_real');
-        $diferencia = round($montoReal - (float) $caja->monto_esperado, 2);
+        $diferencia = round($montoReal - $montoEsperadoCalculado, 2);
 
         $caja->update([
             'fecha_cierre' => now(),
+            'monto_esperado' => $montoEsperadoCalculado,
             'monto_real' => $montoReal,
             'diferencia' => $diferencia,
             'estado' => 'cerrada',

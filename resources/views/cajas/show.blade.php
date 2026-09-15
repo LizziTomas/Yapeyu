@@ -54,27 +54,59 @@
 
                         <hr class="my-2 text-muted">
 
-                        <div class="col-sm-6 col-md-4">
-                            <span class="text-muted small d-block mb-1">Monto Inicial</span>
-                            <span class="fs-5 fw-semibold text-dark">$ {{ number_format($caja->monto_inicial, 2, ',', '.') }}</span>
+                        {{-- Desglose Financiero de la Caja --}}
+                        <div class="col-12">
+                            <h3 class="h6 fw-semibold text-secondary mb-3">Desglose de Ingresos y Ventas</h3>
+                            <div class="row g-3">
+                                <div class="col-sm-6 col-md-4">
+                                    <span class="text-muted small d-block mb-1">Monto Inicial en Efectivo</span>
+                                    <span class="fs-5 fw-semibold text-dark">$ {{ number_format($caja->monto_inicial, 2, ',', '.') }}</span>
+                                </div>
+                                <div class="col-sm-6 col-md-4">
+                                    <span class="text-muted small d-block mb-1">Ventas en Efectivo</span>
+                                    <span class="fs-5 fw-semibold text-success">+ $ {{ number_format($caja->totalVentasEfectivo(), 2, ',', '.') }}</span>
+                                </div>
+                                <div class="col-sm-6 col-md-4">
+                                    <span class="text-muted small d-block mb-1">Ventas por Transferencia</span>
+                                    <span class="fs-5 fw-semibold text-primary">$ {{ number_format($caja->totalVentasTransferencia(), 2, ',', '.') }}</span>
+                                </div>
+                                <div class="col-sm-6 col-md-4">
+                                    <span class="text-muted small d-block mb-1">Ventas con Tarjeta</span>
+                                    <span class="fs-5 fw-semibold text-info">$ {{ number_format($caja->totalVentasTarjeta(), 2, ',', '.') }}</span>
+                                </div>
+                                <div class="col-sm-6 col-md-4">
+                                    <span class="text-muted small d-block mb-1">Total Vendido (Todos los medios)</span>
+                                    <span class="fs-5 fw-bold text-dark">$ {{ number_format($caja->totalVendido(), 2, ',', '.') }}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-sm-6 col-md-4">
-                            <span class="text-muted small d-block mb-1">Monto Esperado</span>
-                            <span class="fs-5 fw-semibold text-primary">$ {{ number_format($caja->monto_esperado, 2, ',', '.') }}</span>
+
+                        <div class="col-12 mt-3">
+                            <div class="p-3 rounded-3 bg-primary-subtle border border-primary-subtle">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="fw-bold fs-6 text-primary d-block">Dinero Físico Esperado en Caja:</span>
+                                        <small class="text-muted">Monto Inicial ($ {{ number_format($caja->monto_inicial, 2, ',', '.') }}) + Ventas en Efectivo ($ {{ number_format($caja->totalVentasEfectivo(), 2, ',', '.') }})</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="fs-4 fw-bold text-primary">$ {{ number_format($caja->dineroEsperado(), 2, ',', '.') }}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         @if ($caja->estaCerrada())
-                            <div class="col-sm-6 col-md-4">
-                                <span class="text-muted small d-block mb-1">Monto Real en Efectivo</span>
+                            <div class="col-sm-6 col-md-6 mt-3">
+                                <span class="text-muted small d-block mb-1">Monto Real Físico Contado</span>
                                 <span class="fs-5 fw-semibold text-dark">$ {{ number_format($caja->monto_real, 2, ',', '.') }}</span>
                             </div>
 
-                            <div class="col-12 mt-3">
+                            <div class="col-12 mt-2">
                                 <div class="p-3 rounded-3 {{ $caja->diferencia == 0 ? 'bg-success-subtle border border-success' : ($caja->diferencia > 0 ? 'bg-info-subtle border border-info' : 'bg-danger-subtle border border-danger') }}">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
                                             <span class="fw-medium d-block">Resultado del Arqueo / Cierre:</span>
-                                            <small class="text-muted">Diferencia calculada respecto al monto esperado</small>
+                                            <small class="text-muted">Diferencia calculada respecto al dinero físico esperado</small>
                                         </div>
                                         <div class="text-end">
                                             @if ($caja->diferencia == 0)
@@ -154,7 +186,7 @@
                     {{-- Script interactivo para previsualizar diferencia en el cliente --}}
                     <script>
                         document.addEventListener('DOMContentLoaded', function () {
-                            const montoEsperado = {{ (float) $caja->monto_esperado }};
+                            const montoEsperado = {{ (float) $caja->dineroEsperado() }};
                             const inputReal = document.getElementById('monto_real');
                             const contenedor = document.getElementById('contenedorDiferencia');
                             const textoDiferencia = document.getElementById('textoDiferencia');

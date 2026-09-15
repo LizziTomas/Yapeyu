@@ -22,13 +22,21 @@
                             <span class="text-muted small">Iniciada el {{ $cajaAbierta->fecha_apertura->format('d/m/Y \a \l\a\s H:i') }} hs</span>
                         </div>
                         <div class="row g-3 mt-1">
-                            <div class="col-sm-6 col-lg-4">
+                            <div class="col-sm-6 col-lg-3">
                                 <span class="text-muted small d-block">Monto Inicial</span>
-                                <span class="fs-5 fw-semibold text-dark">$ {{ number_format($cajaAbierta->monto_inicial, 2, ',', '.') }}</span>
+                                <span class="fs-6 fw-semibold text-dark">$ {{ number_format($cajaAbierta->monto_inicial, 2, ',', '.') }}</span>
                             </div>
-                            <div class="col-sm-6 col-lg-4">
-                                <span class="text-muted small d-block">Monto Esperado</span>
-                                <span class="fs-5 fw-semibold text-primary">$ {{ number_format($cajaAbierta->monto_esperado, 2, ',', '.') }}</span>
+                            <div class="col-sm-6 col-lg-3">
+                                <span class="text-muted small d-block">Ventas Efectivo</span>
+                                <span class="fs-6 fw-semibold text-success">+ $ {{ number_format($cajaAbierta->totalVentasEfectivo(), 2, ',', '.') }}</span>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <span class="text-muted small d-block">Total Vendido</span>
+                                <span class="fs-6 fw-semibold text-dark">$ {{ number_format($cajaAbierta->totalVendido(), 2, ',', '.') }}</span>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <span class="text-muted small d-block">Dinero Esperado</span>
+                                <span class="fs-5 fw-bold text-primary">$ {{ number_format($cajaAbierta->dineroEsperado(), 2, ',', '.') }}</span>
                             </div>
                         </div>
                     </div>
@@ -127,7 +135,7 @@
                                 @endif
                             </td>
                             <td class="text-end">$ {{ number_format($caja->monto_inicial, 2, ',', '.') }}</td>
-                            <td class="text-end">$ {{ number_format($caja->monto_esperado, 2, ',', '.') }}</td>
+                            <td class="text-end">$ {{ number_format($caja->dineroEsperado(), 2, ',', '.') }}</td>
                             <td class="text-end">
                                 @if ($caja->monto_real !== null)
                                     $ {{ number_format($caja->monto_real, 2, ',', '.') }}
