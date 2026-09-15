@@ -9,12 +9,9 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RoleAndPermissionSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+    
     public function run(): void
     {
-        // Reset cached roles and permissions
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Permisos definidos
@@ -27,6 +24,9 @@ class RoleAndPermissionSeeder extends Seeder
             'crear usuarios',
             'editar usuarios',
             'eliminar usuarios',
+            'ver cajas',
+            'abrir cajas',
+            'cerrar cajas',
         ];
 
         foreach ($permisos as $permiso) {
@@ -37,8 +37,13 @@ class RoleAndPermissionSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $adminRole->syncPermissions($permisos);
 
-        // Rol Vendedor con permiso exclusivo de consulta
+        // Rol Vendedor con permisos de consulta y gestión de su caja
         $vendedorRole = Role::firstOrCreate(['name' => 'vendedor', 'guard_name' => 'web']);
-        $vendedorRole->syncPermissions(['ver productos']);
+        $vendedorRole->syncPermissions([
+            'ver productos',
+            'ver cajas',
+            'abrir cajas',
+            'cerrar cajas',
+        ]);
     }
 }

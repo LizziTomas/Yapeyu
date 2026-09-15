@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CajaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
@@ -20,6 +21,13 @@ Route::middleware('auth')->group(function () {
 
     // Listado y consulta de productos (Admin y Vendedor)
     Route::get('productos', [ProductoController::class, 'index'])->name('productos.index');
+
+    // Módulo de Caja (Admin y Vendedor según políticas de autorización)
+    Route::get('cajas', [CajaController::class, 'index'])->name('cajas.index');
+    Route::get('cajas/abrir', [CajaController::class, 'create'])->name('cajas.create');
+    Route::post('cajas', [CajaController::class, 'store'])->name('cajas.store');
+    Route::get('cajas/{caja}', [CajaController::class, 'show'])->name('cajas.show');
+    Route::post('cajas/{caja}/cerrar', [CajaController::class, 'cerrar'])->name('cajas.cerrar');
 });
 
 // Rutas de administración (SOLO para administradores)

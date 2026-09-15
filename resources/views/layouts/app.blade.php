@@ -55,6 +55,13 @@
                             Productos
                         </a>
                     </li>
+                    @can('ver cajas')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('cajas.*') ? 'active' : '' }}" href="{{ route('cajas.index') }}">
+                                Cajas
+                            </a>
+                        </li>
+                    @endcan
                     @if (Auth::check() && Auth::user()->hasRole('admin'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('usuarios.*') ? 'active' : '' }}" href="{{ route('usuarios.index') }}">

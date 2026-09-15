@@ -5,7 +5,7 @@
     </div>
 
     <div class="row g-3">
-        <div class="col-md-6 col-lg-5">
+        <div class="col-md-6 col-lg-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-4">
                     <h2 class="h6 fw-semibold text-muted text-uppercase mb-3">Información de Sesión</h2>
@@ -27,7 +27,45 @@
             </div>
         </div>
 
-        <div class="col-md-6 col-lg-4">
+        @can('ver cajas')
+            <div class="col-md-6 col-lg-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h2 class="h6 fw-semibold text-muted text-uppercase mb-0">Estado de Caja</h2>
+                                @if (Auth::user()->cajaAbierta())
+                                    <span class="badge bg-success">Abierta</span>
+                                @else
+                                    <span class="badge bg-secondary">Sin Caja Abierta</span>
+                                @endif
+                            </div>
+                            @if ($caja = Auth::user()->cajaAbierta())
+                                <p class="text-muted small mb-2">
+                                    Tienes una sesión de caja abierta desde las <strong>{{ $caja->fecha_apertura->format('H:i') }} hs</strong> con un monto inicial de <strong>$ {{ number_format($caja->monto_inicial, 2, ',', '.') }}</strong>.
+                                </p>
+                            @else
+                                <p class="text-muted small mb-2">
+                                    No tienes ninguna caja abierta actualmente. Puedes abrir una nueva caja para iniciar el turno.
+                                </p>
+                            @endif
+                        </div>
+                        <div class="mt-3">
+                            <a href="{{ route('cajas.index') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-cash-stack me-1"></i> Ir a Cajas
+                            </a>
+                            @if (!Auth::user()->cajaAbierta() && Auth::user()->can('abrir cajas'))
+                                <a href="{{ route('cajas.create') }}" class="btn btn-primary btn-sm ms-1">
+                                    <i class="bi bi-plus-circle me-1"></i> Abrir Caja
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endcan
+
+        <div class="col-md-6 col-lg-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                     <div>
@@ -46,7 +84,7 @@
         </div>
 
         @if (Auth::user()->hasRole('admin'))
-            <div class="col-md-6 col-lg-4">
+            <div class="col-md-6 col-lg-6">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-body p-4 d-flex flex-column justify-content-between">
                         <div>

@@ -18,9 +18,15 @@ test('spatie roles and permissions are properly configured', function () {
         ->and($adminRole->hasPermissionTo('crear usuarios'))->toBeTrue()
         ->and($adminRole->hasPermissionTo('editar usuarios'))->toBeTrue()
         ->and($adminRole->hasPermissionTo('eliminar usuarios'))->toBeTrue()
+        ->and($adminRole->hasPermissionTo('ver cajas'))->toBeTrue()
+        ->and($adminRole->hasPermissionTo('abrir cajas'))->toBeTrue()
+        ->and($adminRole->hasPermissionTo('cerrar cajas'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('ver productos'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('crear productos'))->toBeFalse()
-        ->and($vendedorRole->hasPermissionTo('ver usuarios'))->toBeFalse();
+        ->and($vendedorRole->hasPermissionTo('ver usuarios'))->toBeFalse()
+        ->and($vendedorRole->hasPermissionTo('ver cajas'))->toBeTrue()
+        ->and($vendedorRole->hasPermissionTo('abrir cajas'))->toBeTrue()
+        ->and($vendedorRole->hasPermissionTo('cerrar cajas'))->toBeTrue();
 });
 
 test('user with admin role inherits all admin permissions', function () {
@@ -36,10 +42,13 @@ test('user with admin role inherits all admin permissions', function () {
         ->and($admin->can('ver usuarios'))->toBeTrue()
         ->and($admin->can('crear usuarios'))->toBeTrue()
         ->and($admin->can('editar usuarios'))->toBeTrue()
-        ->and($admin->can('eliminar usuarios'))->toBeTrue();
+        ->and($admin->can('eliminar usuarios'))->toBeTrue()
+        ->and($admin->can('ver cajas'))->toBeTrue()
+        ->and($admin->can('abrir cajas'))->toBeTrue()
+        ->and($admin->can('cerrar cajas'))->toBeTrue();
 });
 
-test('user with vendedor role only has product viewing permission', function () {
+test('user with vendedor role has product viewing and own caja permissions', function () {
     $vendedor = User::factory()->create();
     $vendedor->assignRole('vendedor');
 
@@ -52,5 +61,8 @@ test('user with vendedor role only has product viewing permission', function () 
         ->and($vendedor->can('ver usuarios'))->toBeFalse()
         ->and($vendedor->can('crear usuarios'))->toBeFalse()
         ->and($vendedor->can('editar usuarios'))->toBeFalse()
-        ->and($vendedor->can('eliminar usuarios'))->toBeFalse();
+        ->and($vendedor->can('eliminar usuarios'))->toBeFalse()
+        ->and($vendedor->can('ver cajas'))->toBeTrue()
+        ->and($vendedor->can('abrir cajas'))->toBeTrue()
+        ->and($vendedor->can('cerrar cajas'))->toBeTrue();
 });

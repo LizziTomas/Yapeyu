@@ -93,12 +93,16 @@ class UserController extends Controller
 
     /**
      * Elimina un usuario de la base de datos.
-     * Un administrador NO puede eliminarse a sí mismo.
+     * Un administrador NO puede eliminarse a sí mismo ni eliminar usuarios con historial de cajas.
      */
     public function destroy(User $usuario): RedirectResponse
     {
         if ($usuario->id === Auth::id()) {
             return redirect()->route('usuarios.index')->with('error', 'No puedes eliminar tu propia cuenta de administrador.');
+        }
+
+        if ($usuario->cajas()->exists()) {
+            return redirect()->route('usuarios.index')->with('error', 'No se puede eliminar el usuario porque tiene registros de caja asociados al historial.');
         }
 
         $usuario->delete();
