@@ -21,12 +21,16 @@ test('spatie roles and permissions are properly configured', function () {
         ->and($adminRole->hasPermissionTo('ver cajas'))->toBeTrue()
         ->and($adminRole->hasPermissionTo('abrir cajas'))->toBeTrue()
         ->and($adminRole->hasPermissionTo('cerrar cajas'))->toBeTrue()
+        ->and($adminRole->hasPermissionTo('ver ventas'))->toBeTrue()
+        ->and($adminRole->hasPermissionTo('crear ventas'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('ver productos'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('crear productos'))->toBeFalse()
         ->and($vendedorRole->hasPermissionTo('ver usuarios'))->toBeFalse()
         ->and($vendedorRole->hasPermissionTo('ver cajas'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('abrir cajas'))->toBeTrue()
-        ->and($vendedorRole->hasPermissionTo('cerrar cajas'))->toBeTrue();
+        ->and($vendedorRole->hasPermissionTo('cerrar cajas'))->toBeTrue()
+        ->and($vendedorRole->hasPermissionTo('ver ventas'))->toBeTrue()
+        ->and($vendedorRole->hasPermissionTo('crear ventas'))->toBeTrue();
 });
 
 test('user with admin role inherits all admin permissions', function () {
@@ -45,7 +49,9 @@ test('user with admin role inherits all admin permissions', function () {
         ->and($admin->can('eliminar usuarios'))->toBeTrue()
         ->and($admin->can('ver cajas'))->toBeTrue()
         ->and($admin->can('abrir cajas'))->toBeTrue()
-        ->and($admin->can('cerrar cajas'))->toBeTrue();
+        ->and($admin->can('cerrar cajas'))->toBeTrue()
+        ->and($admin->can('ver ventas'))->toBeTrue()
+        ->and($admin->can('crear ventas'))->toBeTrue();
 });
 
 test('user with vendedor role has product viewing and own caja permissions', function () {
@@ -64,5 +70,7 @@ test('user with vendedor role has product viewing and own caja permissions', fun
         ->and($vendedor->can('eliminar usuarios'))->toBeFalse()
         ->and($vendedor->can('ver cajas'))->toBeTrue()
         ->and($vendedor->can('abrir cajas'))->toBeTrue()
-        ->and($vendedor->can('cerrar cajas'))->toBeTrue();
+        ->and($vendedor->can('cerrar cajas'))->toBeTrue()
+        ->and($vendedor->can('ver ventas'))->toBeTrue()
+        ->and($vendedor->can('crear ventas'))->toBeTrue();
 });

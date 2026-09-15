@@ -62,6 +62,13 @@
                             </a>
                         </li>
                     @endcan
+                    @can('ver ventas')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('ventas.*') ? 'active' : '' }}" href="{{ route('ventas.index') }}">
+                                Ventas
+                            </a>
+                        </li>
+                    @endcan
                     @if (Auth::check() && Auth::user()->hasRole('admin'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('usuarios.*') ? 'active' : '' }}" href="{{ route('usuarios.index') }}">

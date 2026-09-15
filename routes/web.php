@@ -4,6 +4,7 @@ use App\Http\Controllers\CajaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VentaController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -28,6 +29,12 @@ Route::middleware('auth')->group(function () {
     Route::post('cajas', [CajaController::class, 'store'])->name('cajas.store');
     Route::get('cajas/{caja}', [CajaController::class, 'show'])->name('cajas.show');
     Route::post('cajas/{caja}/cerrar', [CajaController::class, 'cerrar'])->name('cajas.cerrar');
+
+    // Módulo de Ventas (Admin y Vendedor según políticas de autorización)
+    Route::get('ventas', [VentaController::class, 'index'])->name('ventas.index');
+    Route::get('ventas/crear', [VentaController::class, 'create'])->name('ventas.create');
+    Route::post('ventas', [VentaController::class, 'store'])->name('ventas.store');
+    Route::get('ventas/{venta}', [VentaController::class, 'show'])->name('ventas.show');
 });
 
 // Rutas de administración (SOLO para administradores)

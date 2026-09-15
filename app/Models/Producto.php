@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Producto extends Model
 {
@@ -45,6 +46,14 @@ class Producto extends Model
             'stock_minimo' => 'integer',
             'activo' => 'boolean',
         ];
+    }
+
+    /**
+     * Relación con los renglones de venta asociados al producto.
+     */
+    public function ventaDetalles(): HasMany
+    {
+        return $this->hasMany(VentaDetalle::class);
     }
 
     /**

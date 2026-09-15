@@ -61,5 +61,13 @@ class User extends Authenticatable
     {
         return $this->cajas()->where('estado', 'abierta')->first();
     }
+
+    /**
+     * Relación con las ventas realizadas por el usuario.
+     */
+    public function ventas(): HasMany
+    {
+        return $this->hasMany(Venta::class);
+    }
 }
 

@@ -65,6 +65,31 @@
             </div>
         @endcan
 
+        @can('ver ventas')
+            <div class="col-md-6 col-lg-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <h2 class="h6 fw-semibold text-muted text-uppercase mb-3">Ventas</h2>
+                            <p class="text-muted small">
+                                Registra nuevas operaciones de venta de productos, selecciona medios de pago y consulta el comprobante histórico de operaciones.
+                            </p>
+                        </div>
+                        <div class="mt-3">
+                            <a href="{{ route('ventas.index') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-receipt me-1"></i> Ver Ventas
+                            </a>
+                            @if (Auth::user()->cajaAbierta() && Auth::user()->can('crear ventas'))
+                                <a href="{{ route('ventas.create') }}" class="btn btn-primary btn-sm ms-1">
+                                    <i class="bi bi-cart-plus me-1"></i> Nueva Venta
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endcan
+
         <div class="col-md-6 col-lg-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-4 d-flex flex-column justify-content-between">

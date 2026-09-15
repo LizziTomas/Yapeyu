@@ -27,6 +27,8 @@ class RoleAndPermissionSeeder extends Seeder
             'ver cajas',
             'abrir cajas',
             'cerrar cajas',
+            'ver ventas',
+            'crear ventas',
         ];
 
         foreach ($permisos as $permiso) {
@@ -37,13 +39,15 @@ class RoleAndPermissionSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $adminRole->syncPermissions($permisos);
 
-        // Rol Vendedor con permisos de consulta y gestión de su caja
+        // Rol Vendedor con permisos de consulta, caja y registro de ventas
         $vendedorRole = Role::firstOrCreate(['name' => 'vendedor', 'guard_name' => 'web']);
         $vendedorRole->syncPermissions([
             'ver productos',
             'ver cajas',
             'abrir cajas',
             'cerrar cajas',
+            'ver ventas',
+            'crear ventas',
         ]);
     }
 }
