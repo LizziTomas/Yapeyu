@@ -96,13 +96,23 @@
                     <div>
                         <h2 class="h6 fw-semibold text-muted text-uppercase mb-3">Productos y Stock</h2>
                         <p class="text-muted small">
-                            {{ Auth::user()->hasRole('admin') ? 'Administra el catálogo de productos, precios, niveles de stock y valorización del inventario.' : 'Consulta el catálogo de productos activos, precios de venta y disponibilidad de stock en tiempo real.' }}
+                            {{ Auth::user()->hasRole('admin') ? 'Administra el catálogo de productos, precios, ingresos de mercadería y consulta de movimientos.' : 'Consulta el catálogo de productos activos, disponibilidad de stock e historial de movimientos.' }}
                         </p>
                     </div>
-                    <div>
+                    <div class="mt-3">
                         <a href="{{ route('productos.index') }}" class="btn btn-outline-primary btn-sm">
                             <i class="bi bi-box-seam me-1"></i> Ir a Productos
                         </a>
+                        @can('crear ingresos stock')
+                            <a href="{{ route('movimientos-stock.create') }}" class="btn btn-success btn-sm ms-1">
+                                <i class="bi bi-box-arrow-in-down me-1"></i> Ingreso de Stock
+                            </a>
+                        @endcan
+                        @can('ver movimientos stock')
+                            <a href="{{ route('movimientos-stock.index') }}" class="btn btn-outline-secondary btn-sm ms-1">
+                                <i class="bi bi-clock-history me-1"></i> Movimientos
+                            </a>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -118,7 +128,7 @@
                                 Como administrador, tienes acceso a la gestión integral de usuarios del sistema (crear, editar, asignar roles y eliminar).
                             </p>
                         </div>
-                        <div>
+                        <div class="mt-3">
                             <a href="{{ route('usuarios.index') }}" class="btn btn-outline-primary btn-sm">
                                 <i class="bi bi-people me-1"></i> Ir a Gestión de Usuarios
                             </a>

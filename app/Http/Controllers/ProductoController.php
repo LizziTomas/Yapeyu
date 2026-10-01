@@ -48,12 +48,13 @@ class ProductoController extends Controller
     }
 
     /**
-     * Almacena un nuevo producto activo en la base de datos.
+     * Almacena un nuevo producto activo en la base de datos con stock inicial en 0.
      */
     public function store(StoreProductoRequest $request): RedirectResponse
     {
         $data = $request->validated();
         $data['activo'] = true;
+        $data['stock'] = 0;
 
         Producto::create($data);
 
@@ -69,7 +70,7 @@ class ProductoController extends Controller
     }
 
     /**
-     * Actualiza un producto existente en la base de datos.
+     * Actualiza un producto existente en la base de datos sin alterar el stock.
      */
     public function update(UpdateProductoRequest $request, Producto $producto): RedirectResponse
     {

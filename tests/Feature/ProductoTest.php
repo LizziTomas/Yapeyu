@@ -42,7 +42,6 @@ test('vendedor cannot access create, edit, update, or destroy routes', function 
         'nombre' => 'Producto Ilegal',
         'precio_costo' => 10,
         'precio_venta' => 20,
-        'stock' => 5,
         'stock_minimo' => 1,
     ])->assertStatus(403);
 
@@ -52,14 +51,13 @@ test('vendedor cannot access create, edit, update, or destroy routes', function 
         'nombre' => 'Producto Editado',
         'precio_costo' => 15,
         'precio_venta' => 25,
-        'stock' => 10,
         'stock_minimo' => 2,
     ])->assertStatus(403);
 
     $this->actingAs($vendedor)->delete(route('productos.destroy', $producto))->assertStatus(403);
 });
 
-test('admin can view create form and store a new product', function () {
+test('admin can view create form and store a new product with stock 0', function () {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 
@@ -69,7 +67,6 @@ test('admin can view create form and store a new product', function () {
         'nombre' => 'Clavo Punta Paris 2 Pulgadas',
         'precio_costo' => 120.50,
         'precio_venta' => 190.00,
-        'stock' => 50,
         'stock_minimo' => 10,
     ]);
 
@@ -80,12 +77,12 @@ test('admin can view create form and store a new product', function () {
     expect($producto)->not->toBeNull()
         ->and((float) $producto->precio_costo)->toBe(120.50)
         ->and((float) $producto->precio_venta)->toBe(190.00)
-        ->and($producto->stock)->toBe(50)
+        ->and($producto->stock)->toBe(0)
         ->and($producto->stock_minimo)->toBe(10)
         ->and($producto->activo)->toBeTrue();
 });
 
-test('admin can edit and update a product', function () {
+test('admin can edit and update a product without modifying its stock', function () {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $producto = Producto::factory()->create([
@@ -103,7 +100,7 @@ test('admin can edit and update a product', function () {
         'nombre' => 'Martillo Galponero Reforzado',
         'precio_costo' => 2700.00,
         'precio_venta' => 4100.00,
-        'stock' => 20,
+        'stock' => 99, // Debe ser ignorado por el backend
         'stock_minimo' => 5,
     ]);
 
@@ -114,7 +111,7 @@ test('admin can edit and update a product', function () {
     expect($producto->nombre)->toBe('Martillo Galponero Reforzado')
         ->and((float) $producto->precio_costo)->toBe(2700.00)
         ->and((float) $producto->precio_venta)->toBe(4100.00)
-        ->and($producto->stock)->toBe(20)
+        ->and($producto->stock)->toBe(15) // El stock se mantiene inalterado
         ->and($producto->stock_minimo)->toBe(5);
 });
 
@@ -201,7 +198,7 @@ test('inventory totals are computed correctly based only on active products', fu
     $response->assertSee('$ 3.000,00');
 });
 
-test('validation rejects negative stock and invalid prices', function () {
+test('validation rejects invalid prices and negative stock minimo', function () {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 
@@ -209,7 +206,6 @@ test('validation rejects negative stock and invalid prices', function () {
         'nombre' => '',
         'precio_costo' => -50,
         'precio_venta' => -100,
-        'stock' => -10,
         'stock_minimo' => -2,
     ]);
 
@@ -217,7 +213,6 @@ test('validation rejects negative stock and invalid prices', function () {
         'nombre',
         'precio_costo',
         'precio_venta',
-        'stock',
         'stock_minimo',
     ]);
 });

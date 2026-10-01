@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CajaController;
+use App\Http\Controllers\MovimientoStockController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
@@ -35,6 +36,12 @@ Route::middleware('auth')->group(function () {
     Route::get('ventas/crear', [VentaController::class, 'create'])->name('ventas.create');
     Route::post('ventas', [VentaController::class, 'store'])->name('ventas.store');
     Route::get('ventas/{venta}', [VentaController::class, 'show'])->name('ventas.show');
+
+    // Módulo de Movimientos de Stock (Historial e Ingresos de Mercadería)
+    Route::get('movimientos-stock', [MovimientoStockController::class, 'index'])->name('movimientos-stock.index');
+    Route::get('movimientos-stock/crear', [MovimientoStockController::class, 'create'])->name('movimientos-stock.create');
+    Route::post('movimientos-stock', [MovimientoStockController::class, 'store'])->name('movimientos-stock.store');
+    Route::get('movimientos-stock/{movimientoStock}', [MovimientoStockController::class, 'show'])->name('movimientos-stock.show');
 });
 
 // Rutas de administración (SOLO para administradores)
@@ -44,4 +51,3 @@ Route::middleware(['auth', 'admin'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
-

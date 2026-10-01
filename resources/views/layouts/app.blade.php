@@ -55,6 +55,13 @@
                             Productos
                         </a>
                     </li>
+                    @can('ver movimientos stock')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('movimientos-stock.*') ? 'active' : '' }}" href="{{ route('movimientos-stock.index') }}">
+                                Movimientos Stock
+                            </a>
+                        </li>
+                    @endcan
                     @can('ver cajas')
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('cajas.*') ? 'active' : '' }}" href="{{ route('cajas.index') }}">

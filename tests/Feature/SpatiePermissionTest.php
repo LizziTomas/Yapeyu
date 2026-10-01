@@ -23,6 +23,8 @@ test('spatie roles and permissions are properly configured', function () {
         ->and($adminRole->hasPermissionTo('cerrar cajas'))->toBeTrue()
         ->and($adminRole->hasPermissionTo('ver ventas'))->toBeTrue()
         ->and($adminRole->hasPermissionTo('crear ventas'))->toBeTrue()
+        ->and($adminRole->hasPermissionTo('ver movimientos stock'))->toBeTrue()
+        ->and($adminRole->hasPermissionTo('crear ingresos stock'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('ver productos'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('crear productos'))->toBeFalse()
         ->and($vendedorRole->hasPermissionTo('ver usuarios'))->toBeFalse()
@@ -30,7 +32,9 @@ test('spatie roles and permissions are properly configured', function () {
         ->and($vendedorRole->hasPermissionTo('abrir cajas'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('cerrar cajas'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('ver ventas'))->toBeTrue()
-        ->and($vendedorRole->hasPermissionTo('crear ventas'))->toBeTrue();
+        ->and($vendedorRole->hasPermissionTo('crear ventas'))->toBeTrue()
+        ->and($vendedorRole->hasPermissionTo('ver movimientos stock'))->toBeTrue()
+        ->and($vendedorRole->hasPermissionTo('crear ingresos stock'))->toBeFalse();
 });
 
 test('user with admin role inherits all admin permissions', function () {
@@ -51,10 +55,12 @@ test('user with admin role inherits all admin permissions', function () {
         ->and($admin->can('abrir cajas'))->toBeTrue()
         ->and($admin->can('cerrar cajas'))->toBeTrue()
         ->and($admin->can('ver ventas'))->toBeTrue()
-        ->and($admin->can('crear ventas'))->toBeTrue();
+        ->and($admin->can('crear ventas'))->toBeTrue()
+        ->and($admin->can('ver movimientos stock'))->toBeTrue()
+        ->and($admin->can('crear ingresos stock'))->toBeTrue();
 });
 
-test('user with vendedor role has product viewing and own caja permissions', function () {
+test('user with vendedor role has product viewing, own caja, and stock viewing permissions', function () {
     $vendedor = User::factory()->create();
     $vendedor->assignRole('vendedor');
 
@@ -72,5 +78,7 @@ test('user with vendedor role has product viewing and own caja permissions', fun
         ->and($vendedor->can('abrir cajas'))->toBeTrue()
         ->and($vendedor->can('cerrar cajas'))->toBeTrue()
         ->and($vendedor->can('ver ventas'))->toBeTrue()
-        ->and($vendedor->can('crear ventas'))->toBeTrue();
+        ->and($vendedor->can('crear ventas'))->toBeTrue()
+        ->and($vendedor->can('ver movimientos stock'))->toBeTrue()
+        ->and($vendedor->can('crear ingresos stock'))->toBeFalse();
 });

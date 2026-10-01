@@ -1,11 +1,23 @@
 <x-app-layout>
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
         <h1 class="h4 mb-0 fw-semibold">Gestión de Productos</h1>
-        @can('crear productos')
-            <a href="{{ route('productos.create') }}" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus-lg me-1"></i> Nuevo Producto
-            </a>
-        @endcan
+        <div class="d-flex gap-2">
+            @can('crear ingresos stock')
+                <a href="{{ route('movimientos-stock.create') }}" class="btn btn-success btn-sm">
+                    <i class="bi bi-box-arrow-in-down me-1"></i> Ingreso de Stock
+                </a>
+            @endcan
+            @can('ver movimientos stock')
+                <a href="{{ route('movimientos-stock.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-clock-history me-1"></i> Historial Stock
+                </a>
+            @endcan
+            @can('crear productos')
+                <a href="{{ route('productos.create') }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i> Nuevo Producto
+                </a>
+            @endcan
+        </div>
     </div>
 
     <!-- Resumen de Totales del Inventario -->

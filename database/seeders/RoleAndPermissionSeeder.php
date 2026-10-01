@@ -9,7 +9,6 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RoleAndPermissionSeeder extends Seeder
 {
-    
     public function run(): void
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
@@ -29,6 +28,8 @@ class RoleAndPermissionSeeder extends Seeder
             'cerrar cajas',
             'ver ventas',
             'crear ventas',
+            'ver movimientos stock',
+            'crear ingresos stock',
         ];
 
         foreach ($permisos as $permiso) {
@@ -39,7 +40,7 @@ class RoleAndPermissionSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $adminRole->syncPermissions($permisos);
 
-        // Rol Vendedor con permisos de consulta, caja y registro de ventas
+        // Rol Vendedor con permisos de consulta, caja, ventas y consulta de movimientos de stock
         $vendedorRole = Role::firstOrCreate(['name' => 'vendedor', 'guard_name' => 'web']);
         $vendedorRole->syncPermissions([
             'ver productos',
@@ -48,6 +49,7 @@ class RoleAndPermissionSeeder extends Seeder
             'cerrar cajas',
             'ver ventas',
             'crear ventas',
+            'ver movimientos stock',
         ]);
     }
 }

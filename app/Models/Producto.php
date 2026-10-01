@@ -57,6 +57,14 @@ class Producto extends Model
     }
 
     /**
+     * Relación con el historial de movimientos de stock del producto.
+     */
+    public function movimientosStock(): HasMany
+    {
+        return $this->hasMany(MovimientoStock::class);
+    }
+
+    /**
      * Scope para filtrar únicamente productos activos.
      */
     public function scopeActivos(Builder $query): Builder

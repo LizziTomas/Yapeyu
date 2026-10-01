@@ -16,7 +16,6 @@ use Spatie\Permission\Traits\HasRoles;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    
     use HasFactory, Notifiable, HasRoles;
 
     /**
@@ -69,5 +68,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Venta::class);
     }
-}
 
+    /**
+     * Relación con los movimientos de stock registrados por el usuario.
+     */
+    public function movimientosStock(): HasMany
+    {
+        return $this->hasMany(MovimientoStock::class);
+    }
+}

@@ -16,7 +16,7 @@
 
                         <!-- Nombre del Producto -->
                         <div class="mb-3">
-                            <label for="nombre" class="form-label">Nombre del producto</label>
+                            <label for="nombre" class="form-label">Nombre del producto <span class="text-danger">*</span></label>
                             <input type="text" 
                                    class="form-control form-control-sm @error('nombre') is-invalid @enderror" 
                                    id="nombre" 
@@ -32,7 +32,7 @@
                         <!-- Precios -->
                         <div class="row g-2 mb-3">
                             <div class="col-sm-6">
-                                <label for="precio_costo" class="form-label">Precio de costo ($)</label>
+                                <label for="precio_costo" class="form-label">Precio de costo ($) <span class="text-danger">*</span></label>
                                 <input type="number" 
                                        step="0.01" 
                                        min="0"
@@ -46,7 +46,7 @@
                                 @enderror
                             </div>
                             <div class="col-sm-6">
-                                <label for="precio_venta" class="form-label">Precio de venta ($)</label>
+                                <label for="precio_venta" class="form-label">Precio de venta ($) <span class="text-danger">*</span></label>
                                 <input type="number" 
                                        step="0.01" 
                                        min="0"
@@ -61,24 +61,29 @@
                             </div>
                         </div>
 
-                        <!-- Stocks -->
+                        <!-- Stock Actual (Solo Lectura) y Stock Mínimo -->
                         <div class="row g-2 mb-4">
                             <div class="col-sm-6">
-                                <label for="stock" class="form-label">Stock actual</label>
-                                <input type="number" 
-                                       step="1" 
-                                       min="0"
-                                       class="form-control form-control-sm @error('stock') is-invalid @enderror" 
-                                       id="stock" 
-                                       name="stock" 
-                                       value="{{ old('stock', $producto->stock) }}" 
-                                       required>
-                                @error('stock')
-                                    <div class="invalid-feedback small">{{ $message }}</div>
-                                @enderror
+                                <label class="form-label">Stock actual</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" 
+                                           class="form-control bg-light" 
+                                           value="{{ $producto->stock }} unidades" 
+                                           disabled>
+                                    @can('crear ingresos stock')
+                                        <a href="{{ route('movimientos-stock.create', ['producto_id' => $producto->id]) }}" 
+                                           class="btn btn-outline-success btn-sm" 
+                                           title="Registrar ingreso de mercadería para este producto">
+                                            + Ingresar
+                                        </a>
+                                    @endcan
+                                </div>
+                                <div class="form-text small text-muted">
+                                    El stock no se edita manualmente.
+                                </div>
                             </div>
                             <div class="col-sm-6">
-                                <label for="stock_minimo" class="form-label">Stock mínimo de alerta</label>
+                                <label for="stock_minimo" class="form-label">Stock mínimo de alerta <span class="text-danger">*</span></label>
                                 <input type="number" 
                                        step="1" 
                                        min="0"
