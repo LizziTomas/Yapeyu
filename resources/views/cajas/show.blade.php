@@ -60,23 +60,23 @@
                             <div class="row g-3">
                                 <div class="col-sm-6 col-md-4">
                                     <span class="text-muted small d-block mb-1">Monto Inicial en Efectivo</span>
-                                    <span class="fs-5 fw-semibold text-dark">$ {{ number_format($caja->monto_inicial, 2, ',', '.') }}</span>
+                                    <span class="fs-5 fw-semibold text-dark">$ {{ monto($caja->monto_inicial) }}</span>
                                 </div>
                                 <div class="col-sm-6 col-md-4">
                                     <span class="text-muted small d-block mb-1">Ventas en Efectivo</span>
-                                    <span class="fs-5 fw-semibold text-success">+ $ {{ number_format($caja->totalVentasEfectivo(), 2, ',', '.') }}</span>
+                                    <span class="fs-5 fw-semibold text-success">+ $ {{ monto($caja->totalVentasEfectivo()) }}</span>
                                 </div>
                                 <div class="col-sm-6 col-md-4">
                                     <span class="text-muted small d-block mb-1">Ventas por Transferencia</span>
-                                    <span class="fs-5 fw-semibold text-primary">$ {{ number_format($caja->totalVentasTransferencia(), 2, ',', '.') }}</span>
+                                    <span class="fs-5 fw-semibold text-primary">$ {{ monto($caja->totalVentasTransferencia()) }}</span>
                                 </div>
                                 <div class="col-sm-6 col-md-4">
                                     <span class="text-muted small d-block mb-1">Ventas con Tarjeta</span>
-                                    <span class="fs-5 fw-semibold text-info">$ {{ number_format($caja->totalVentasTarjeta(), 2, ',', '.') }}</span>
+                                    <span class="fs-5 fw-semibold text-info">$ {{ monto($caja->totalVentasTarjeta()) }}</span>
                                 </div>
                                 <div class="col-sm-6 col-md-4">
                                     <span class="text-muted small d-block mb-1">Total Vendido (Todos los medios)</span>
-                                    <span class="fs-5 fw-bold text-dark">$ {{ number_format($caja->totalVendido(), 2, ',', '.') }}</span>
+                                    <span class="fs-5 fw-bold text-dark">$ {{ monto($caja->totalVendido()) }}</span>
                                 </div>
                             </div>
                         </div>
@@ -86,10 +86,10 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <span class="fw-bold fs-6 text-primary d-block">Dinero Físico Esperado en Caja:</span>
-                                        <small class="text-muted">Monto Inicial ($ {{ number_format($caja->monto_inicial, 2, ',', '.') }}) + Ventas en Efectivo ($ {{ number_format($caja->totalVentasEfectivo(), 2, ',', '.') }})</small>
+                                        <small class="text-muted">Monto Inicial ($ {{ monto($caja->monto_inicial) }}) + Ventas en Efectivo ($ {{ monto($caja->totalVentasEfectivo()) }})</small>
                                     </div>
                                     <div class="text-end">
-                                        <span class="fs-4 fw-bold text-primary">$ {{ number_format($caja->dineroEsperado(), 2, ',', '.') }}</span>
+                                        <span class="fs-4 fw-bold text-primary">$ {{ monto($caja->dineroEsperado()) }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -98,7 +98,7 @@
                         @if ($caja->estaCerrada())
                             <div class="col-sm-6 col-md-6 mt-3">
                                 <span class="text-muted small d-block mb-1">Monto Real Físico Contado</span>
-                                <span class="fs-5 fw-semibold text-dark">$ {{ number_format($caja->monto_real, 2, ',', '.') }}</span>
+                                <span class="fs-5 fw-semibold text-dark">$ {{ monto($caja->monto_real) }}</span>
                             </div>
 
                             <div class="col-12 mt-2">
@@ -110,11 +110,11 @@
                                         </div>
                                         <div class="text-end">
                                             @if ($caja->diferencia == 0)
-                                                <span class="fs-5 fw-bold text-success">$ 0,00 (Exacto)</span>
+                                                <span class="fs-5 fw-bold text-success">$ {{ monto(0) }} (Exacto)</span>
                                             @elseif ($caja->diferencia > 0)
-                                                <span class="fs-5 fw-bold text-info">+$ {{ number_format($caja->diferencia, 2, ',', '.') }} (Sobrante)</span>
+                                                <span class="fs-5 fw-bold text-info">+$ {{ monto($caja->diferencia) }} (Sobrante)</span>
                                             @else
-                                                <span class="fs-5 fw-bold text-danger">-$ {{ number_format(abs($caja->diferencia), 2, ',', '.') }} (Faltante)</span>
+                                                <span class="fs-5 fw-bold text-danger">-$ {{ monto(abs($caja->diferencia)) }} (Faltante)</span>
                                             @endif
                                         </div>
                                     </div>
@@ -149,7 +149,7 @@
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
                                         <input type="number" 
-                                               step="0.01" 
+                                               step="{{ configuracion()->paso() }}" 
                                                min="0" 
                                                name="monto_real" 
                                                id="monto_real" 
@@ -203,13 +203,13 @@
 
                                 if (diff === 0) {
                                     textoDiferencia.className = 'fw-bold text-success';
-                                    textoDiferencia.textContent = '$ 0,00 (Exacto)';
+                                    textoDiferencia.textContent = '$ {{ monto(0) }} (Exacto)';
                                 } else if (diff > 0) {
                                     textoDiferencia.className = 'fw-bold text-info';
-                                    textoDiferencia.textContent = '+$ ' + diff.toFixed(2) + ' (Sobrante)';
+                                    textoDiferencia.textContent = '+$ ' + diff.toFixed({{ configuracion()->decimales() }}) + ' (Sobrante)';
                                 } else {
                                     textoDiferencia.className = 'fw-bold text-danger';
-                                    textoDiferencia.textContent = '-$ ' + Math.abs(diff).toFixed(2) + ' (Faltante)';
+                                    textoDiferencia.textContent = '-$ ' + Math.abs(diff).toFixed({{ configuracion()->decimales() }}) + ' (Faltante)';
                                 }
                             }
 

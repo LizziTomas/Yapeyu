@@ -22,7 +22,7 @@ class CerrarCajaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'monto_real' => ['required', 'numeric', 'min:0'],
+            'monto_real' => ['required', 'numeric', 'min:0', 'decimal:0,'.configuracion()->decimales()],
         ];
     }
 
@@ -37,6 +37,7 @@ class CerrarCajaRequest extends FormRequest
             'monto_real.required' => 'El monto real es obligatorio.',
             'monto_real.numeric' => 'El monto real debe ser un número válido.',
             'monto_real.min' => 'El monto real no puede ser un valor negativo.',
+            'monto_real.decimal' => 'El monto tiene más decimales de los que permite la configuración del local.',
         ];
     }
 }

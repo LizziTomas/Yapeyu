@@ -42,7 +42,7 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-3">
                     <span class="text-muted small d-block mb-1">Valor Total a Costo</span>
-                    <span class="fs-5 fw-bold text-secondary">$ {{ number_format($totales['total_valor_costo'], 2, ',', '.') }}</span>
+                    <span class="fs-5 fw-bold text-secondary">$ {{ monto($totales['total_valor_costo']) }}</span>
                 </div>
             </div>
         </div>
@@ -50,7 +50,7 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-3">
                     <span class="text-muted small d-block mb-1">Valor Potencial Venta</span>
-                    <span class="fs-5 fw-bold text-success">$ {{ number_format($totales['total_valor_venta'], 2, ',', '.') }}</span>
+                    <span class="fs-5 fw-bold text-success">$ {{ monto($totales['total_valor_venta']) }}</span>
                 </div>
             </div>
         </div>
@@ -107,16 +107,16 @@
                                 <span class="badge bg-warning text-dark ms-1 small" title="Stock en nivel mínimo o inferior">Stock bajo</span>
                             @endif
                         </td>
-                        <td class="text-end text-muted">$ {{ number_format($producto->precio_costo, 2, ',', '.') }}</td>
-                        <td class="text-end fw-medium">$ {{ number_format($producto->precio_venta, 2, ',', '.') }}</td>
+                        <td class="text-end text-muted">$ {{ monto($producto->precio_costo) }}</td>
+                        <td class="text-end fw-medium">$ {{ monto($producto->precio_venta) }}</td>
                         <td class="text-center">
                             <span class="fw-semibold {{ $producto->isStockBajo() ? 'text-danger' : 'text-dark' }}">
                                 {{ $producto->stock }}
                             </span>
                         </td>
                         <td class="text-center text-muted">{{ $producto->stock_minimo }}</td>
-                        <td class="text-end text-muted small">$ {{ number_format($producto->valor_stock_costo, 2, ',', '.') }}</td>
-                        <td class="text-end text-success small fw-medium">$ {{ number_format($producto->valor_potencial_venta, 2, ',', '.') }}</td>
+                        <td class="text-end text-muted small">$ {{ monto($producto->valor_stock_costo) }}</td>
+                        <td class="text-end text-success small fw-medium">$ {{ monto($producto->valor_potencial_venta) }}</td>
                         @if (Auth::user()->hasRole('admin'))
                             <td class="text-end pe-3">
                                 <div class="btn-group btn-group-sm" role="group">

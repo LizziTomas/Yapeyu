@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Casa Yacobone') }}</title>
+    <title>{{ configuracion()->nombre_local }}</title>
 
     <!-- Bootstrap 5 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -42,7 +42,7 @@
     <div class="auth-container">
         <div class="text-center mb-3">
             <a href="/" class="text-decoration-none text-dark fs-4 fw-bold">
-                Casa Yacobone
+                {{ configuracion()->nombre_local }}
             </a>
         </div>
 

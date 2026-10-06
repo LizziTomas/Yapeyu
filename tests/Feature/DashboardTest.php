@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Caja;
+use App\Models\Configuracion;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
@@ -252,7 +253,9 @@ test('dashboard handles user without open caja gracefully', function () {
     $response->assertSee('Abrir Caja');
 });
 
-test('dashboard formats money values without decimal places', function () {
+test('dashboard formats money values without decimal places when the local does not use cents', function () {
+    Configuracion::actual()->update(['usa_centavos' => false]);
+
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 

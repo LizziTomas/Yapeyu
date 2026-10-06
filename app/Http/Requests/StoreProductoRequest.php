@@ -23,8 +23,8 @@ class StoreProductoRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:255'],
-            'precio_costo' => ['required', 'numeric', 'min:0'],
-            'precio_venta' => ['required', 'numeric', 'min:0'],
+            'precio_costo' => ['required', 'numeric', 'min:0', 'decimal:0,'.configuracion()->decimales()],
+            'precio_venta' => ['required', 'numeric', 'min:0', 'decimal:0,'.configuracion()->decimales()],
             'stock_minimo' => ['required', 'integer', 'min:0'],
         ];
     }
@@ -40,9 +40,11 @@ class StoreProductoRequest extends FormRequest
             'precio_costo.required' => 'El precio de costo es obligatorio.',
             'precio_costo.numeric' => 'El precio de costo debe ser un valor numérico.',
             'precio_costo.min' => 'El precio de costo no puede ser negativo.',
+            'precio_costo.decimal' => 'El monto tiene más decimales de los que permite la configuración del local.',
             'precio_venta.required' => 'El precio de venta es obligatorio.',
             'precio_venta.numeric' => 'El precio de venta debe ser un valor numérico.',
             'precio_venta.min' => 'El precio de venta no puede ser negativo.',
+            'precio_venta.decimal' => 'El monto tiene más decimales de los que permite la configuración del local.',
             'stock_minimo.required' => 'El stock mínimo es obligatorio.',
             'stock_minimo.integer' => 'El stock mínimo debe ser un número entero.',
             'stock_minimo.min' => 'El stock mínimo no puede ser negativo.',

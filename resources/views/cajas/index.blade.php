@@ -24,19 +24,19 @@
                         <div class="row g-3 mt-1">
                             <div class="col-sm-6 col-lg-3">
                                 <span class="text-muted small d-block">Monto Inicial</span>
-                                <span class="fs-6 fw-semibold text-dark">$ {{ number_format($cajaAbierta->monto_inicial, 2, ',', '.') }}</span>
+                                <span class="fs-6 fw-semibold text-dark">$ {{ monto($cajaAbierta->monto_inicial) }}</span>
                             </div>
                             <div class="col-sm-6 col-lg-3">
                                 <span class="text-muted small d-block">Ventas Efectivo</span>
-                                <span class="fs-6 fw-semibold text-success">+ $ {{ number_format($cajaAbierta->totalVentasEfectivo(), 2, ',', '.') }}</span>
+                                <span class="fs-6 fw-semibold text-success">+ $ {{ monto($cajaAbierta->totalVentasEfectivo()) }}</span>
                             </div>
                             <div class="col-sm-6 col-lg-3">
                                 <span class="text-muted small d-block">Total Vendido</span>
-                                <span class="fs-6 fw-semibold text-dark">$ {{ number_format($cajaAbierta->totalVendido(), 2, ',', '.') }}</span>
+                                <span class="fs-6 fw-semibold text-dark">$ {{ monto($cajaAbierta->totalVendido()) }}</span>
                             </div>
                             <div class="col-sm-6 col-lg-3">
                                 <span class="text-muted small d-block">Dinero Esperado</span>
-                                <span class="fs-5 fw-bold text-primary">$ {{ number_format($cajaAbierta->dineroEsperado(), 2, ',', '.') }}</span>
+                                <span class="fs-5 fw-bold text-primary">$ {{ monto($cajaAbierta->dineroEsperado()) }}</span>
                             </div>
                         </div>
                     </div>
@@ -134,11 +134,11 @@
                                     <span class="text-muted fst-italic">En curso</span>
                                 @endif
                             </td>
-                            <td class="text-end">$ {{ number_format($caja->monto_inicial, 2, ',', '.') }}</td>
-                            <td class="text-end">$ {{ number_format($caja->dineroEsperado(), 2, ',', '.') }}</td>
+                            <td class="text-end">$ {{ monto($caja->monto_inicial) }}</td>
+                            <td class="text-end">$ {{ monto($caja->dineroEsperado()) }}</td>
                             <td class="text-end">
                                 @if ($caja->monto_real !== null)
-                                    $ {{ number_format($caja->monto_real, 2, ',', '.') }}
+                                    $ {{ monto($caja->monto_real) }}
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -147,15 +147,15 @@
                                 @if ($caja->diferencia !== null)
                                     @if ($caja->diferencia == 0)
                                         <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                            $ 0,00 (Exacto)
+                                            $ {{ monto(0) }} (Exacto)
                                         </span>
                                     @elseif ($caja->diferencia > 0)
                                         <span class="badge bg-info-subtle text-info border border-info-subtle">
-                                            +$ {{ number_format($caja->diferencia, 2, ',', '.') }} (Sobrante)
+                                            +$ {{ monto($caja->diferencia) }} (Sobrante)
                                         </span>
                                     @else
                                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
-                                            -$ {{ number_format(abs($caja->diferencia), 2, ',', '.') }} (Faltante)
+                                            -$ {{ monto(abs($caja->diferencia)) }} (Faltante)
                                         </span>
                                     @endif
                                 @else

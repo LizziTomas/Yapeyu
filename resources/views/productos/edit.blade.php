@@ -34,7 +34,7 @@
                             <div class="col-sm-6">
                                 <label for="precio_costo" class="form-label">Precio de costo ($) <span class="text-danger">*</span></label>
                                 <input type="number" 
-                                       step="0.01" 
+                                       step="{{ configuracion()->paso() }}" 
                                        min="0"
                                        class="form-control form-control-sm @error('precio_costo') is-invalid @enderror" 
                                        id="precio_costo" 
@@ -48,7 +48,7 @@
                             <div class="col-sm-6">
                                 <label for="precio_venta" class="form-label">Precio de venta ($) <span class="text-danger">*</span></label>
                                 <input type="number" 
-                                       step="0.01" 
+                                       step="{{ configuracion()->paso() }}" 
                                        min="0"
                                        class="form-control form-control-sm @error('precio_venta') is-invalid @enderror" 
                                        id="precio_venta" 

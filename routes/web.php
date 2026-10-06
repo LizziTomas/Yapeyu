@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CajaController;
+use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MovimientoStockController;
 use App\Http\Controllers\ProductoController;
@@ -49,6 +50,10 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('usuarios', UserController::class);
     Route::resource('productos', ProductoController::class)->except(['index', 'show']);
+
+    // Configuración del local (nombre y uso de centavos)
+    Route::get('configuracion', [ConfiguracionController::class, 'edit'])->name('configuracion.edit');
+    Route::patch('configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
 });
 
 require __DIR__.'/auth.php';

@@ -21,7 +21,7 @@
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
                                 <input type="number" 
-                                       step="0.01" 
+                                       step="{{ configuracion()->paso() }}" 
                                        min="0" 
                                        name="monto_inicial" 
                                        id="monto_inicial" 

@@ -22,7 +22,7 @@ class StoreCajaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'monto_inicial' => ['required', 'numeric', 'min:0'],
+            'monto_inicial' => ['required', 'numeric', 'min:0', 'decimal:0,'.configuracion()->decimales()],
         ];
     }
 
@@ -37,6 +37,7 @@ class StoreCajaRequest extends FormRequest
             'monto_inicial.required' => 'El monto inicial es obligatorio.',
             'monto_inicial.numeric' => 'El monto inicial debe ser un número válido.',
             'monto_inicial.min' => 'El monto inicial no puede ser un valor negativo.',
+            'monto_inicial.decimal' => 'El monto tiene más decimales de los que permite la configuración del local.',
         ];
     }
 }

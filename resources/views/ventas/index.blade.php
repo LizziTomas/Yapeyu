@@ -2,7 +2,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h4 mb-1 fw-semibold">Gestión de Ventas</h1>
-            <p class="text-muted small mb-0">Registro y consulta de operaciones comerciales de Casa Yacobone</p>
+            <p class="text-muted small mb-0">Registro y consulta de operaciones comerciales de {{ configuracion()->nombre_local }}</p>
         </div>
         @can('crear ventas')
             <a href="{{ route('ventas.create') }}" class="btn btn-primary btn-sm">
@@ -113,7 +113,7 @@
                                 @endif
                             </td>
                             <td class="text-end fw-semibold fs-6">
-                                $ {{ number_format($venta->total, 2, ',', '.') }}
+                                $ {{ monto($venta->total) }}
                             </td>
                             <td class="text-center">
                                 <span class="badge bg-success">Completada</span>

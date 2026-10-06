@@ -7,7 +7,7 @@
                         <i class="bi bi-arrow-left me-1"></i> Volver a Ventas
                     </a>
                     <h1 class="h4 mb-1 fw-semibold">Detalle de Venta #{{ $venta->id }}</h1>
-                    <p class="text-muted small mb-0">Comprobante de operación comercial registrada en Casa Yacobone</p>
+                    <p class="text-muted small mb-0">Comprobante de operación comercial registrada en {{ configuracion()->nombre_local }}</p>
                 </div>
                 <div class="d-flex gap-2">
                     <span class="badge bg-success fs-6">
@@ -93,10 +93,10 @@
                                         {{ $detalle->cantidad }}
                                     </td>
                                     <td class="text-end">
-                                        $ {{ number_format($detalle->precio_unitario, 2, ',', '.') }}
+                                        $ {{ monto($detalle->precio_unitario) }}
                                     </td>
                                     <td class="text-end fw-semibold">
-                                        $ {{ number_format($detalle->subtotal, 2, ',', '.') }}
+                                        $ {{ monto($detalle->subtotal) }}
                                     </td>
                                 </tr>
                             @endforeach
@@ -105,7 +105,7 @@
                             <tr>
                                 <td colspan="4" class="text-end fw-bold fs-6">Total de la Venta:</td>
                                 <td class="text-end fw-bold fs-5 text-primary">
-                                    $ {{ number_format($venta->total, 2, ',', '.') }}
+                                    $ {{ monto($venta->total) }}
                                 </td>
                             </tr>
                         </tfoot>

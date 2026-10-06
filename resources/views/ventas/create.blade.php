@@ -62,7 +62,7 @@
                                                             <option value="{{ $prod->id }}" 
                                                                     data-precio="{{ (float) $prod->precio_venta }}" 
                                                                     data-stock="{{ $prod->stock }}">
-                                                                {{ $prod->nombre }} (Stock: {{ $prod->stock }}) - $ {{ number_format($prod->precio_venta, 2, ',', '.') }}
+                                                                {{ $prod->nombre }} (Stock: {{ $prod->stock }}) - $ {{ monto($prod->precio_venta) }}
                                                             </option>
                                                         @endforeach
                                                     </select>
@@ -75,8 +75,8 @@
                                                            value="1" 
                                                            required>
                                                 </td>
-                                                <td class="text-end fw-medium texto-precio">$ 0,00</td>
-                                                <td class="text-end fw-semibold texto-subtotal">$ 0,00</td>
+                                                <td class="text-end fw-medium texto-precio">$ {{ monto(0) }}</td>
+                                                <td class="text-end fw-semibold texto-subtotal">$ {{ monto(0) }}</td>
                                                 <td class="text-center">
                                                     <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar-fila" title="Eliminar ítem">
                                                         <i class="bi bi-trash"></i>
@@ -120,7 +120,7 @@
                                 {{-- Total a cobrar --}}
                                 <div class="d-flex justify-content-between align-items-center mb-4">
                                     <span class="fs-6 fw-semibold text-muted">Total a Cobrar:</span>
-                                    <span class="fs-4 fw-bold text-primary" id="totalVenta">$ 0,00</span>
+                                    <span class="fs-4 fw-bold text-primary" id="totalVenta">$ {{ monto(0) }}</span>
                                 </div>
 
                                 <div class="d-grid gap-2">
@@ -154,13 +154,13 @@
                     <option value="{{ $prod->id }}" 
                             data-precio="{{ (float) $prod->precio_venta }}" 
                             data-stock="{{ $prod->stock }}">
-                        {{ $prod->nombre }} (Stock: {{ $prod->stock }}) - $ {{ number_format($prod->precio_venta, 2, ',', '.') }}
+                        {{ $prod->nombre }} (Stock: {{ $prod->stock }}) - $ {{ monto($prod->precio_venta) }}
                     </option>
                 @endforeach
             `;
 
             function formatearMoneda(monto) {
-                return '$ ' + monto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return '$ ' + monto.toLocaleString('es-AR', { minimumFractionDigits: {{ configuracion()->decimales() }}, maximumFractionDigits: {{ configuracion()->decimales() }} });
             }
 
             function recalcularTotales() {
@@ -190,8 +190,8 @@
                         textoSubtotal.textContent = formatearMoneda(subtotal);
                         granTotal += subtotal;
                     } else {
-                        textoPrecio.textContent = '$ 0,00';
-                        textoSubtotal.textContent = '$ 0,00';
+                        textoPrecio.textContent = '$ {{ monto(0) }}';
+                        textoSubtotal.textContent = '$ {{ monto(0) }}';
                     }
                 });
 
@@ -217,8 +217,8 @@
                                value="1" 
                                required>
                     </td>
-                    <td class="text-end fw-medium texto-precio">$ 0,00</td>
-                    <td class="text-end fw-semibold texto-subtotal">$ 0,00</td>
+                    <td class="text-end fw-medium texto-precio">$ {{ monto(0) }}</td>
+                    <td class="text-end fw-semibold texto-subtotal">$ {{ monto(0) }}</td>
                     <td class="text-center">
                         <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar-fila" title="Eliminar ítem">
                             <i class="bi bi-trash"></i>
