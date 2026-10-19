@@ -17,8 +17,16 @@ class ProductoController extends Controller
     public function index(Request $request): View
     {
         $search = $request->input('search');
+        $estado = $request->input('estado', 'activos');
 
-        $query = Producto::activos();
+        $query = Producto::query();
+
+        // Filtro por estado: activos (por defecto), inactivos o todos
+        if ($estado === 'inactivos') {
+            $query->where('activo', false);
+        } elseif ($estado !== 'todos') {
+            $query->activos();
+        }
 
         if ($search) {
             $query->where('nombre', 'like', "%{$search}%");
@@ -36,7 +44,7 @@ class ProductoController extends Controller
             'total_valor_venta' => (float) (Producto::activos()->selectRaw('SUM(stock * precio_venta) as total')->value('total') ?? 0),
         ];
 
-        return view('productos.index', compact('productos', 'totales', 'search'));
+        return view('productos.index', compact('productos', 'totales', 'search', 'estado'));
     }
 
     /**

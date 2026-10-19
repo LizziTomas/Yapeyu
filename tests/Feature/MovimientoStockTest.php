@@ -305,9 +305,68 @@ test('show view displays complete historical movement information', function () 
     $response->assertStatus(200);
     $response->assertSee('Cuchillo Criollo 20cm');
     $response->assertSee('Encargado Stock');
-    $response->assertSee('ingreso');
+    $response->assertSee('Ingreso');
     $response->assertSee('+12');
     $response->assertSee('8');
     $response->assertSee('20');
     $response->assertSee('Ingreso de cuchillos artesanales');
+});
+
+test('el historial de stock filtra por tipo de movimiento', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $producto = Producto::factory()->create(['nombre' => 'Producto Filtrable', 'activo' => true]);
+
+    MovimientoStock::factory()->create([
+        'producto_id' => $producto->id,
+        'user_id' => $admin->id,
+        'tipo' => MovimientoStock::TIPO_INGRESO,
+        'observacion' => 'Ingreso inicial',
+    ]);
+
+    MovimientoStock::factory()->create([
+        'producto_id' => $producto->id,
+        'user_id' => $admin->id,
+        'tipo' => MovimientoStock::TIPO_DESCARTE,
+        'observacion' => 'Descarte por rotura',
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('movimientos-stock.index', ['tipo' => MovimientoStock::TIPO_DESCARTE]));
+
+    $response->assertStatus(200);
+    $movimientos = $response->viewData('movimientos');
+    expect($movimientos)->toHaveCount(1)
+        ->and($movimientos->first()->tipo)->toBe(MovimientoStock::TIPO_DESCARTE);
+});
+
+test('el historial de stock busca por observación y por nombre de producto', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $producto = Producto::factory()->create(['nombre' => 'Taladro Percutor', 'activo' => true]);
+    $otroProducto = Producto::factory()->create(['nombre' => 'Martillo de Goma', 'activo' => true]);
+
+    MovimientoStock::factory()->create([
+        'producto_id' => $producto->id,
+        'user_id' => $admin->id,
+        'observacion' => 'Anulación de la venta #55',
+    ]);
+
+    MovimientoStock::factory()->create([
+        'producto_id' => $otroProducto->id,
+        'user_id' => $admin->id,
+        'observacion' => 'Ingreso de mercadería',
+    ]);
+
+    // Búsqueda por observación
+    $porObservacion = $this->actingAs($admin)->get(route('movimientos-stock.index', ['search' => 'venta #55']));
+    $porObservacion->assertStatus(200);
+    expect($porObservacion->viewData('movimientos'))->toHaveCount(1);
+
+    // Búsqueda por nombre de producto
+    $porProducto = $this->actingAs($admin)->get(route('movimientos-stock.index', ['search' => 'Taladro']));
+    $porProducto->assertStatus(200);
+    expect($porProducto->viewData('movimientos'))->toHaveCount(1)
+        ->and($porProducto->viewData('movimientos')->first()->producto_id)->toBe($producto->id);
 });

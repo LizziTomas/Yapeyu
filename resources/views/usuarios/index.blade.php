@@ -63,7 +63,7 @@
                             @endif
                         </td>
                         <td class="small text-muted">
-                            {{ $user->created_at ? $user->created_at->format('d/m/Y H:i') : '-' }}
+                            {{ $user->created_at ? $user->created_at->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y H:i') : '-' }}
                         </td>
                         <td class="text-end pe-3">
                             <div class="btn-group btn-group-sm" role="group">

@@ -277,3 +277,200 @@ test('dashboard formats money values without decimal places when the local does 
     $response->assertSee('$ 150.000');
     $response->assertDontSee('$ 150.000,00');
 });
+
+test('el dashboard incluye los contenedores y datos de los gráficos', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $response = $this->actingAs($admin)->get(route('dashboard'));
+
+    $response->assertStatus(200);
+
+    // Contenedores de los gráficos
+    $response->assertSee('id="graficoVentasSemana"', false);
+    $response->assertSee('id="graficoMediosHoy"', false);
+
+    // Datos inyectados para Chart.js
+    $response->assertSee('var etiquetasSemana =', false);
+    $response->assertSee('var totalesSemana =', false);
+
+    // La serie de la última semana siempre tiene 7 puntos
+    preg_match('/var totalesSemana = \[([^\]]*)\];/', $response->getContent(), $coincidencia);
+    expect(explode(',', $coincidencia[1] ?? ''))->toHaveCount(7);
+});
+
+test('el gráfico de la última semana solo suma ventas dentro de los últimos 7 días', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $caja = Caja::factory()->create(['user_id' => $admin->id]);
+
+    $zona = 'America/Argentina/Buenos_Aires';
+
+    // Venta de hoy y venta de hace 3 días: ambas entran en la serie
+    Venta::forceCreate([
+        'caja_id' => $caja->id,
+        'user_id' => $admin->id,
+        'total' => 1000.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::now($zona)->setTimezone('UTC'),
+    ]);
+
+    Venta::forceCreate([
+        'caja_id' => $caja->id,
+        'user_id' => $admin->id,
+        'total' => 500.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::now($zona)->subDays(3)->setTimezone('UTC'),
+    ]);
+
+    // Venta de hace 30 días: NO debe aparecer en la serie (aunque sí en el mes si correspondiera)
+    Venta::forceCreate([
+        'caja_id' => $caja->id,
+        'user_id' => $admin->id,
+        'total' => 99999.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::now($zona)->subDays(30)->setTimezone('UTC'),
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('dashboard'));
+    $response->assertStatus(200);
+
+    preg_match('/var totalesSemana = \[([^\]]*)\];/', $response->getContent(), $m);
+    $valores = array_map('floatval', explode(',', $m[1] ?? ''));
+    $suma = round(array_sum($valores), 2);
+
+    // Solo la venta de hoy (1000) y la de hace 3 días (500)
+    expect($suma)->toBe(1500.0)
+        ->and($valores)->toHaveCount(7)
+        ->and(max($valores))->toBe(1000.0);
+});
+
+test('un vendedor solo ve sus propias ventas en el gráfico semanal', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    $otro = User::factory()->create();
+    $otro->assignRole('vendedor');
+
+    $cajaPropia = Caja::factory()->create(['user_id' => $vendedor->id]);
+    $cajaAjena = Caja::factory()->create(['user_id' => $otro->id]);
+
+    $zona = 'America/Argentina/Buenos_Aires';
+
+    Venta::forceCreate([
+        'caja_id' => $cajaPropia->id,
+        'user_id' => $vendedor->id,
+        'total' => 1000.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::now($zona)->setTimezone('UTC'),
+    ]);
+
+    Venta::forceCreate([
+        'caja_id' => $cajaAjena->id,
+        'user_id' => $otro->id,
+        'total' => 77777.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::now($zona)->setTimezone('UTC'),
+    ]);
+
+    $response = $this->actingAs($vendedor)->get(route('dashboard'));
+    $response->assertStatus(200);
+
+    preg_match('/var totalesSemana = \[([^\]]*)\];/', $response->getContent(), $m);
+    $suma = round(array_sum(array_map('floatval', explode(',', $m[1] ?? ''))), 2);
+
+    // El vendedor solo ve su venta de 1000, no la del otro vendedor
+    expect($suma)->toBe(1000.0);
+});
+
+test('el dashboard muestra la tendencia porcentual contra el día anterior', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $caja = Caja::factory()->create(['user_id' => $admin->id]);
+
+    $zona = 'America/Argentina/Buenos_Aires';
+
+    // Ayer: 1000. Hoy: 1500 => +50%
+    Venta::forceCreate([
+        'caja_id' => $caja->id,
+        'user_id' => $admin->id,
+        'total' => 1000.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::now($zona)->subDay()->setTimezone('UTC'),
+    ]);
+
+    Venta::forceCreate([
+        'caja_id' => $caja->id,
+        'user_id' => $admin->id,
+        'total' => 1500.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::now($zona)->setTimezone('UTC'),
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('dashboard'));
+
+    $response->assertStatus(200);
+    $response->assertSee('50,0% vs. ayer');
+});
+
+test('el dashboard muestra la caída cuando se vende menos que ayer', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $caja = Caja::factory()->create(['user_id' => $admin->id]);
+
+    $zona = 'America/Argentina/Buenos_Aires';
+
+    // Ayer: 2000. Hoy: 1000 => -50%
+    Venta::forceCreate([
+        'caja_id' => $caja->id,
+        'user_id' => $admin->id,
+        'total' => 2000.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::now($zona)->subDay()->setTimezone('UTC'),
+    ]);
+
+    Venta::forceCreate([
+        'caja_id' => $caja->id,
+        'user_id' => $admin->id,
+        'total' => 1000.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::now($zona)->setTimezone('UTC'),
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('dashboard'));
+
+    $response->assertStatus(200);
+    $response->assertSee('50,0% vs. ayer');
+});
+
+test('el dashboard avisa cuando no hay ventas de ayer para comparar', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $caja = Caja::factory()->create(['user_id' => $admin->id]);
+
+    $zona = 'America/Argentina/Buenos_Aires';
+
+    // Solo hay venta de hoy: no existe base de comparación
+    Venta::forceCreate([
+        'caja_id' => $caja->id,
+        'user_id' => $admin->id,
+        'total' => 1000.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::now($zona)->setTimezone('UTC'),
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('dashboard'));
+
+    $response->assertStatus(200);
+    $response->assertSee('Sin base de ayer');
+});

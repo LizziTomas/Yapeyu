@@ -14,12 +14,12 @@
     {{-- Filtros de búsqueda --}}
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-3">
-            <form method="GET" action="{{ route('ventas.index') }}" class="row g-2 align-items-center">
+            <form method="GET" action="{{ route('ventas.index') }}" class="row g-2 align-items-end">
                 @if (Auth::user()->isAdmin())
-                    <div class="col-md-3">
-                        <label for="user_id" class="visually-hidden">Vendedor</label>
+                    <div class="col-6 col-md-3">
+                        <label for="user_id" class="form-label small text-muted">Vendedor</label>
                         <select name="user_id" id="user_id" class="form-select form-select-sm">
-                            <option value="">-- Todos los vendedores --</option>
+                            <option value="">-- Todos --</option>
                             @foreach ($usuarios as $usr)
                                 <option value="{{ $usr->id }}" {{ request('user_id') == $usr->id ? 'selected' : '' }}>
                                     {{ $usr->name }}
@@ -28,24 +28,44 @@
                         </select>
                     </div>
                 @endif
-                <div class="col-md-3">
-                    <label for="medio_pago" class="visually-hidden">Medio de Pago</label>
+                <div class="col-6 col-md-2">
+                    <label for="medio_pago" class="form-label small text-muted">Medio de pago</label>
                     <select name="medio_pago" id="medio_pago" class="form-select form-select-sm">
-                        <option value="">-- Todos los medios de pago --</option>
+                        <option value="">-- Todos --</option>
                         <option value="efectivo" {{ request('medio_pago') === 'efectivo' ? 'selected' : '' }}>Efectivo</option>
                         <option value="transferencia" {{ request('medio_pago') === 'transferencia' ? 'selected' : '' }}>Transferencia</option>
                         <option value="tarjeta" {{ request('medio_pago') === 'tarjeta' ? 'selected' : '' }}>Tarjeta</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label for="fecha" class="visually-hidden">Fecha</label>
-                    <input type="date" name="fecha" id="fecha" class="form-control form-control-sm" value="{{ request('fecha') }}" placeholder="Fecha">
+                <div class="col-6 col-md-2">
+                    <label for="estado" class="form-label small text-muted">Estado</label>
+                    <select name="estado" id="estado" class="form-select form-select-sm">
+                        <option value="">-- Todos --</option>
+                        <option value="completada" {{ request('estado') === 'completada' ? 'selected' : '' }}>Completadas</option>
+                        <option value="anulada" {{ request('estado') === 'anulada' ? 'selected' : '' }}>Anuladas</option>
+                    </select>
                 </div>
-                <div class="col-md-3 d-flex gap-2">
+                <div class="col-6 col-md-2">
+                    <label for="fecha_desde" class="form-label small text-muted">Desde</label>
+                    <input type="date" name="fecha_desde" id="fecha_desde" class="form-control form-control-sm" value="{{ request('fecha_desde') }}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="fecha_hasta" class="form-label small text-muted">Hasta</label>
+                    <input type="date" name="fecha_hasta" id="fecha_hasta" class="form-control form-control-sm" value="{{ request('fecha_hasta') }}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="monto_min" class="form-label small text-muted">Monto mín.</label>
+                    <input type="number" step="0.01" min="0" name="monto_min" id="monto_min" class="form-control form-control-sm" value="{{ request('monto_min') }}" placeholder="0">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="monto_max" class="form-label small text-muted">Monto máx.</label>
+                    <input type="number" step="0.01" min="0" name="monto_max" id="monto_max" class="form-control form-control-sm" value="{{ request('monto_max') }}" placeholder="Sin límite">
+                </div>
+                <div class="col-12 col-md-auto d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm">
                         <i class="bi bi-filter me-1"></i> Filtrar
                     </button>
-                    @if (request()->hasAny(['user_id', 'medio_pago', 'fecha']))
+                    @if (request()->hasAny(['user_id', 'medio_pago', 'estado', 'fecha', 'fecha_desde', 'fecha_hasta', 'monto_min', 'monto_max']))
                         <a href="{{ route('ventas.index') }}" class="btn btn-outline-secondary btn-sm">Limpiar</a>
                     @endif
                 </div>
@@ -78,10 +98,10 @@
                 </thead>
                 <tbody>
                     @forelse ($ventas as $venta)
-                        <tr>
+                        <tr class="{{ $venta->esAnulada() ? 'opacity-75' : '' }}">
                             <td class="fw-semibold text-muted">#{{ $venta->id }}</td>
                             <td>
-                                <div>{{ $venta->created_at->format('d/m/Y') }}</div>
+                                <div>{{ $venta->created_at->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y') }}</div>
                                 <small class="text-muted">{{ $venta->created_at->format('H:i') }} hs</small>
                             </td>
                             @if (Auth::user()->isAdmin())
@@ -112,23 +132,36 @@
                                     <span class="badge bg-secondary">{{ ucfirst($venta->medio_pago) }}</span>
                                 @endif
                             </td>
-                            <td class="text-end fw-semibold fs-6">
+                            <td class="text-end fw-semibold fs-6 {{ $venta->esAnulada() ? 'text-decoration-line-through text-muted' : '' }}">
                                 $ {{ monto($venta->total) }}
                             </td>
                             <td class="text-center">
-                                <span class="badge bg-success">Completada</span>
+                                @if ($venta->esAnulada())
+                                    <span class="badge bg-danger">Anulada</span>
+                                @else
+                                    <span class="badge bg-success">Completada</span>
+                                @endif
                             </td>
                             <td class="text-end">
-                                <a href="{{ route('ventas.show', $venta) }}" class="btn btn-outline-primary btn-sm" title="Ver Detalle">
-                                    <i class="bi bi-eye"></i> Detalle
-                                </a>
+                                <div class="d-inline-flex gap-1">
+                                    <a href="{{ route('ventas.show', $venta) }}" class="btn btn-outline-primary btn-sm" title="Ver Detalle">
+                                        <i class="bi bi-eye"></i> Detalle
+                                    </a>
+                                    @can('anular', $venta)
+                                        <button type="button" class="btn btn-outline-danger btn-sm" title="Anular venta"
+                                                data-bs-toggle="modal" data-bs-target="#modalAnularVenta{{ $venta->id }}">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    @endcan
+                                </div>
+                                @include('ventas.partials.modal-anular', ['venta' => $venta])
                             </td>
                         </tr>
                     @empty
                         <tr>
                             <td colspan="{{ Auth::user()->isAdmin() ? 8 : 7 }}" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox fs-3 d-block mb-1"></i>
-                                No se encontraron registros de ventas.
+                                <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+                                No se encontraron ventas con los filtros seleccionados.
                             </td>
                         </tr>
                     @endforelse

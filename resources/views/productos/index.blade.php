@@ -59,19 +59,29 @@
     <!-- Buscador de Productos -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body p-3">
-            <form method="GET" action="{{ route('productos.index') }}" class="row g-2 align-items-center">
-                <div class="col-sm-8 col-md-6 col-lg-4">
-                    <input type="text" 
-                           name="search" 
-                           class="form-control form-control-sm" 
-                           placeholder="Buscar por nombre de producto..." 
+            <form method="GET" action="{{ route('productos.index') }}" class="row g-2 align-items-end">
+                <div class="col-sm-8 col-md-5 col-lg-4">
+                    <label for="search" class="form-label small text-muted">Buscar</label>
+                    <input type="text"
+                           id="search"
+                           name="search"
+                           class="form-control form-control-sm"
+                           placeholder="Buscar por nombre de producto..."
                            value="{{ request('search') }}">
+                </div>
+                <div class="col-sm-4 col-md-3 col-lg-2">
+                    <label for="estado" class="form-label small text-muted">Estado</label>
+                    <select id="estado" name="estado" class="form-select form-select-sm">
+                        <option value="activos" @selected($estado === 'activos')>Activos</option>
+                        <option value="inactivos" @selected($estado === 'inactivos')>Inactivos</option>
+                        <option value="todos" @selected($estado === 'todos')>Todos</option>
+                    </select>
                 </div>
                 <div class="col-auto">
                     <button type="submit" class="btn btn-secondary btn-sm">
-                        Buscar
+                        <i class="bi bi-search me-1"></i> Filtrar
                     </button>
-                    @if(request('search'))
+                    @if (request()->filled('search') || ($estado !== 'activos'))
                         <a href="{{ route('productos.index') }}" class="btn btn-outline-secondary btn-sm ms-1">
                             Limpiar
                         </a>
@@ -144,7 +154,8 @@
                 @empty
                     <tr>
                         <td colspan="{{ Auth::user()->hasRole('admin') ? 8 : 7 }}" class="text-center text-muted py-4">
-                            No se encontraron productos activos registrados.
+                            <i class="bi bi-box-seam fs-4 d-block mb-1"></i>
+                            No se encontraron productos con los filtros seleccionados.
                         </td>
                     </tr>
                 @endforelse

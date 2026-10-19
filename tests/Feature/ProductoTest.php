@@ -216,3 +216,55 @@ test('validation rejects invalid prices and negative stock minimo', function () 
         'stock_minimo',
     ]);
 });
+
+test('el listado de productos permite ver solo los inactivos', function () {
+    $user = User::factory()->create();
+    $user->assignRole('vendedor');
+
+    Producto::factory()->create(['nombre' => 'Producto Activo Visible', 'activo' => true]);
+    Producto::factory()->create(['nombre' => 'Producto Inactivo Oculto', 'activo' => false]);
+
+    // Por defecto solo se ven los activos
+    $this->actingAs($user)
+        ->get(route('productos.index'))
+        ->assertDontSee('Producto Inactivo Oculto');
+
+    // Filtro por inactivos
+    $response = $this->actingAs($user)->get(route('productos.index', ['estado' => 'inactivos']));
+    $response->assertStatus(200);
+    $response->assertSee('Producto Inactivo Oculto');
+    $response->assertDontSee('Producto Activo Visible');
+});
+
+test('el filtro de estado todos muestra activos e inactivos', function () {
+    $user = User::factory()->create();
+    $user->assignRole('vendedor');
+
+    Producto::factory()->create(['nombre' => 'Producto Activo Visible', 'activo' => true]);
+    Producto::factory()->create(['nombre' => 'Producto Inactivo Oculto', 'activo' => false]);
+
+    $response = $this->actingAs($user)->get(route('productos.index', ['estado' => 'todos']));
+
+    $response->assertStatus(200);
+    $response->assertSee('Producto Activo Visible');
+    $response->assertSee('Producto Inactivo Oculto');
+});
+
+test('el buscador de productos se combina con el filtro de estado', function () {
+    $user = User::factory()->create();
+    $user->assignRole('vendedor');
+
+    Producto::factory()->create(['nombre' => 'Taladro Inactivo', 'activo' => false]);
+    Producto::factory()->create(['nombre' => 'Taladro Activo', 'activo' => true]);
+    Producto::factory()->create(['nombre' => 'Martillo Inactivo', 'activo' => false]);
+
+    $response = $this->actingAs($user)->get(route('productos.index', [
+        'search' => 'Taladro',
+        'estado' => 'inactivos',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSee('Taladro Inactivo');
+    $response->assertDontSee('Taladro Activo');
+    $response->assertDontSee('Martillo Inactivo');
+});

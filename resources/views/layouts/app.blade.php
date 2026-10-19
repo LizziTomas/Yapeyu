@@ -209,6 +209,28 @@
         .tabular {
             font-variant-numeric: tabular-nums;
         }
+
+        /* Contenedores de gráficos: Chart.js necesita una altura fija cuando no mantiene la proporción */
+        .grafico-contenedor {
+            position: relative;
+            height: 300px;
+        }
+        .grafico-contenedor-dona {
+            position: relative;
+            height: 260px;
+        }
+        .grafico-vacio {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: .35rem;
+            color: var(--bs-secondary-color);
+            font-size: .85rem;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -337,6 +359,11 @@
                     document.querySelectorAll('[data-tema]').forEach(function (otro) {
                         otro.classList.toggle('active', otro === btn);
                     });
+
+                    // Los gráficos leen colores del tema: se vuelven a dibujar al cambiarlo.
+                    if (window.YapeyuGraficos) {
+                        window.YapeyuGraficos.redibujar();
+                    }
                 });
             });
         </script>
@@ -359,6 +386,22 @@
                     </div>
                 @endif
 
+                {{-- Errores de validación: aviso general para que ninguna pantalla quede sin explicación --}}
+                @if ($errors->any())
+                    <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+                        <div class="fw-semibold mb-1">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Revisá los datos ingresados:
+                        </div>
+                        <ul class="mb-0 ps-3">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                        <button type="button" class="btn-close py-2 px-3" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                    </div>
+                @endif
+
                 @isset($slot)
                     {{ $slot }}
                 @else
@@ -370,5 +413,181 @@
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Chart.js (gráficos estadísticos) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+    <script>
+        /**
+         * Utilidades para los gráficos del sistema.
+         * Los colores se leen de las variables CSS del tema, de modo que los gráficos
+         * se adaptan automáticamente al modo claro y oscuro.
+         */
+        window.YapeyuGraficos = (function () {
+            var decimales = {{ configuracion()->decimales() }};
+            var instancias = {};
+            var registrados = [];
+
+            function cssVar(nombre, alternativo) {
+                var valor = getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
+                return valor || alternativo;
+            }
+
+            function tema() {
+                return {
+                    texto: cssVar('--bs-body-color', '#212529'),
+                    suave: cssVar('--bs-secondary-color', '#6c757d'),
+                    grilla: cssVar('--app-line', 'rgba(0,0,0,.08)'),
+                    tooltipFondo: cssVar('--app-tile', '#1f2a30'),
+                    tooltipTexto: cssVar('--app-tile-text', '#ffffff')
+                };
+            }
+
+            // Formatea un número como monto en pesos con la cantidad de decimales configurada.
+            function montoJs(valor) {
+                return '$ ' + Number(valor).toLocaleString('es-AR', {
+                    minimumFractionDigits: decimales,
+                    maximumFractionDigits: decimales
+                });
+            }
+
+            // Formatea una fecha ISO (Y-m-d) como d/m para las etiquetas de los ejes.
+            function fechaCorta(iso) {
+                var partes = String(iso).split('-');
+                return partes.length === 3 ? partes[2] + '/' + partes[1] : iso;
+            }
+
+            // Opciones base para gráficos con ejes (líneas y barras).
+            function opcionesEjes(t) {
+                return {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: t.tooltipFondo,
+                            titleColor: t.tooltipTexto,
+                            bodyColor: t.tooltipTexto,
+                            padding: 10,
+                            cornerRadius: 6,
+                            callbacks: {
+                                label: function (contexto) {
+                                    return ' ' + montoJs(contexto.parsed.y !== undefined ? contexto.parsed.y : contexto.parsed);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: t.suave, maxRotation: 0, autoSkipPadding: 12 },
+                            grid: { color: t.grilla, drawTicks: false },
+                            border: { color: t.grilla }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: t.suave, callback: function (valor) { return montoJs(valor); } },
+                            grid: { color: t.grilla, drawTicks: false },
+                            border: { color: t.grilla }
+                        }
+                    }
+                };
+            }
+
+            // Opciones base para gráficos de torta/dona (sin ejes).
+            function opcionesDona(t) {
+                return {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '62%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: t.texto, usePointStyle: true, boxWidth: 8, padding: 14 }
+                        },
+                        tooltip: {
+                            backgroundColor: t.tooltipFondo,
+                            titleColor: t.tooltipTexto,
+                            bodyColor: t.tooltipTexto,
+                            padding: 10,
+                            cornerRadius: 6,
+                            callbacks: {
+                                label: function (contexto) {
+                                    var total = contexto.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+                                    var porcentaje = total > 0 ? Math.round(contexto.parsed / total * 100) : 0;
+                                    return ' ' + montoJs(contexto.parsed) + ' (' + porcentaje + '%)';
+                                }
+                            }
+                        }
+                    }
+                };
+            }
+
+            // Crea (o recrea) un gráfico sobre el canvas indicado.
+            function crear(id, construir) {
+                var canvas = document.getElementById(id);
+                if (!canvas || typeof Chart === 'undefined') {
+                    return;
+                }
+
+                if (instancias[id]) {
+                    instancias[id].destroy();
+                }
+
+                var t = tema();
+                instancias[id] = new Chart(canvas.getContext('2d'), construir(t));
+            }
+
+            // Oculta el canvas y muestra un mensaje cuando el gráfico no tiene datos.
+            function sinDatos(id) {
+                var canvas = document.getElementById(id);
+                if (!canvas) {
+                    return;
+                }
+                canvas.classList.add('d-none');
+                var contenedor = canvas.parentElement;
+                if (contenedor && !contenedor.querySelector('.grafico-vacio')) {
+                    var aviso = document.createElement('div');
+                    aviso.className = 'grafico-vacio';
+                    aviso.innerHTML = '<i class="bi bi-graph-up fs-4"></i><span>Sin datos para el período</span>';
+                    contenedor.appendChild(aviso);
+                }
+            }
+
+            return {
+                tema: tema,
+                montoJs: montoJs,
+                fechaCorta: fechaCorta,
+                opcionesEjes: opcionesEjes,
+                opcionesDona: opcionesDona,
+                sinDatos: sinDatos,
+
+                /**
+                 * Registra un gráfico: se dibuja ahora y se vuelve a dibujar al cambiar el tema.
+                 *
+                 * @param {string} id       Id del canvas.
+                 * @param {Function} construir  Recibe el tema y devuelve la configuración de Chart.js.
+                 * @param {boolean} hayDatos    Si es falso, muestra el aviso de "sin datos".
+                 */
+                registrar: function (id, construir, hayDatos) {
+                    if (hayDatos === false) {
+                        sinDatos(id);
+                        return;
+                    }
+
+                    registrados.push({ id: id, construir: construir });
+                    crear(id, construir);
+                },
+
+                redibujar: function () {
+                    registrados.forEach(function (grafico) {
+                        crear(grafico.id, grafico.construir);
+                    });
+                }
+            };
+        })();
+    </script>
+
+    @stack('scripts')
 </body>
 </html>
