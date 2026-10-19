@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -29,6 +30,9 @@ class Venta extends Model
         'total',
         'medio_pago',
         'estado',
+        'motivo_anulacion',
+        'anulada_por',
+        'anulada_at',
     ];
 
     /**
@@ -40,6 +44,7 @@ class Venta extends Model
     {
         return [
             'total' => 'decimal:2',
+            'anulada_at' => 'datetime',
         ];
     }
 
@@ -68,10 +73,34 @@ class Venta extends Model
     }
 
     /**
+     * Relación con el usuario que anuló la venta (auditoría).
+     */
+    public function anuladaPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'anulada_por');
+    }
+
+    /**
      * Determina si la venta se encuentra en estado completada.
      */
     public function esCompletada(): bool
     {
         return $this->estado === 'completada';
+    }
+
+    /**
+     * Determina si la venta fue anulada.
+     */
+    public function esAnulada(): bool
+    {
+        return $this->estado === 'anulada';
+    }
+
+    /**
+     * Scope para filtrar únicamente ventas anuladas.
+     */
+    public function scopeAnuladas(Builder $query): Builder
+    {
+        return $query->where('estado', 'anulada');
     }
 }

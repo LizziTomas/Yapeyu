@@ -28,8 +28,10 @@ class RoleAndPermissionSeeder extends Seeder
             'cerrar cajas',
             'ver ventas',
             'crear ventas',
+            'anular ventas',
             'ver movimientos stock',
             'crear ingresos stock',
+            'crear descartes stock',
         ];
 
         foreach ($permisos as $permiso) {
@@ -49,6 +51,7 @@ class RoleAndPermissionSeeder extends Seeder
             'cerrar cajas',
             'ver ventas',
             'crear ventas',
+            'anular ventas',
             'ver movimientos stock',
         ]);
     }
