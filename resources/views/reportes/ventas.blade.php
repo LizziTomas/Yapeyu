@@ -4,10 +4,17 @@
             <h1 class="h4 mb-1 fw-semibold">Reporte de Ventas</h1>
             <p class="text-body-secondary small mb-0">Consolidado y detalle de operaciones comerciales de {{ configuracion()->nombre_local }}</p>
         </div>
-        <span class="text-body-secondary small">
-            <i class="bi bi-calendar3 me-1"></i>
-            {{ now('America/Argentina/Buenos_Aires')->translatedFormat('d/m/Y') }}
-        </span>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-body-secondary small d-none d-md-inline">
+                <i class="bi bi-calendar3 me-1"></i>
+                {{ now('America/Argentina/Buenos_Aires')->translatedFormat('d/m/Y') }}
+            </span>
+            <a href="{{ route('reportes.ventas.exportar', request()->query()) }}"
+               class="btn btn-outline-success btn-sm"
+               title="Descargar el detalle del período en formato CSV para Excel">
+                <i class="bi bi-filetype-csv me-1"></i> Exportar CSV
+            </a>
+        </div>
     </div>
 
     {{-- Alerta de errores de validación (por ejemplo, fecha hasta < fecha desde) --}}
@@ -177,6 +184,62 @@
         </div>
     </div>
 
+    {{-- Aviso de ventas anuladas en el período (no afectan los totales) --}}
+    @if ($cantidadAnuladas > 0)
+        <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2 py-2 px-3 mb-4 small" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-x-octagon fs-5"></i>
+                <span>
+                    Se registraron
+                    <strong>{{ number_format($cantidadAnuladas, 0, ',', '.') }}</strong>
+                    {{ $cantidadAnuladas === 1 ? 'venta anulada' : 'ventas anuladas' }}
+                    en el período. No se incluyen en los totales facturados.
+                </span>
+            </div>
+            <a href="{{ route('ventas.index', ['estado' => 'anulada']) }}" class="btn btn-outline-warning btn-sm text-nowrap">
+                <i class="bi bi-list-ul me-1"></i> Ver anuladas
+            </a>
+        </div>
+    @endif
+
+    {{-- Gráficos del período: evolución y medios de pago --}}
+    <div class="row g-3 mb-4">
+        {{-- Evolución de las ventas --}}
+        <div class="col-lg-7">
+            <div class="card card-panel h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h2 class="h6 mb-0 fw-semibold d-flex align-items-center gap-2">
+                        <i class="bi bi-bar-chart-line text-primary"></i> Evolución de Ventas
+                    </h2>
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis">
+                        {{ $agrupacionSerie === 'mensual' ? 'Por mes' : 'Por día' }}
+                    </span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="grafico-contenedor">
+                        <canvas id="graficoEvolucion" aria-label="Evolución de ventas del período" role="img"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Distribución por medio de pago --}}
+        <div class="col-lg-5">
+            <div class="card card-panel h-100">
+                <div class="card-header py-3">
+                    <h2 class="h6 mb-0 fw-semibold d-flex align-items-center gap-2">
+                        <i class="bi bi-pie-chart text-success"></i> Distribución por Medio de Pago
+                    </h2>
+                </div>
+                <div class="card-body p-4">
+                    <div class="grafico-contenedor-dona">
+                        <canvas id="graficoMediosPago" aria-label="Distribución por medio de pago del período" role="img"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Desglose por Medios de Pago --}}
     <div class="card card-panel mb-4">
         <div class="card-header py-3">
@@ -327,4 +390,63 @@
             @endif
         </div>
     </div>
+
+    {{-- Gráficos: evolución del período y distribución por medio de pago --}}
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var G = window.YapeyuGraficos;
+
+                var etiquetasSerie = @json($etiquetasSerie);
+                var valoresSerie = @json($valoresSerie);
+                var agrupacion = @json($agrupacionSerie);
+                var haySerie = valoresSerie.some(function (valor) { return valor > 0; });
+
+                G.registrar('graficoEvolucion', function (t) {
+                    return {
+                        type: agrupacion === 'mensual' ? 'bar' : 'line',
+                        data: {
+                            labels: etiquetasSerie,
+                            datasets: [{
+                                label: 'Vendido',
+                                data: valoresSerie,
+                                borderColor: '#0d6efd',
+                                backgroundColor: agrupacion === 'mensual' ? 'rgba(13, 110, 253, 0.55)' : 'rgba(13, 110, 253, 0.14)',
+                                borderWidth: 2,
+                                borderRadius: agrupacion === 'mensual' ? 4 : 0,
+                                tension: 0.35,
+                                fill: agrupacion !== 'mensual',
+                                pointBackgroundColor: '#0d6efd',
+                                pointBorderColor: t.tooltipTexto,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            }]
+                        },
+                        options: G.opcionesEjes(t)
+                    };
+                }, haySerie);
+
+                var etiquetasMedios = ['Efectivo', 'Transferencia', 'Tarjeta'];
+                var valoresMedios = [{{ $totalEfectivo }}, {{ $totalTransferencia }}, {{ $totalTarjeta }}];
+                var hayMedios = valoresMedios.some(function (valor) { return valor > 0; });
+
+                G.registrar('graficoMediosPago', function (t) {
+                    return {
+                        type: 'doughnut',
+                        data: {
+                            labels: etiquetasMedios,
+                            datasets: [{
+                                data: valoresMedios,
+                                backgroundColor: ['#198754', '#0d6efd', '#0dcaf0'],
+                                borderColor: t.tooltipTexto,
+                                borderWidth: 2,
+                                hoverOffset: 6
+                            }]
+                        },
+                        options: G.opcionesDona(t)
+                    };
+                }, hayMedios);
+            });
+        </script>
+    @endpush
 </x-app-layout>

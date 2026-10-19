@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AnularVentaRequest;
 use App\Http\Requests\StoreVentaRequest;
+use App\Models\MovimientoStock;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,6 +31,44 @@ class VentaController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
+        $zonaHoraria = 'America/Argentina/Buenos_Aires';
+
+        // Filtros comunes a ambos roles (administrador y vendedor)
+        $aplicarFiltros = function ($query) use ($request, $zonaHoraria) {
+            if ($request->filled('medio_pago')) {
+                $query->where('medio_pago', $request->medio_pago);
+            }
+
+            if ($request->filled('estado')) {
+                $query->where('estado', $request->estado);
+            }
+
+            if ($request->filled('fecha')) {
+                $query->whereDate('created_at', $request->fecha);
+            }
+
+            // Rango de fechas: el negocio opera en hora argentina y la base guarda UTC
+            if ($request->filled('fecha_desde')) {
+                $desde = Carbon::parse($request->fecha_desde, $zonaHoraria)->startOfDay()->setTimezone('UTC');
+                $query->where('created_at', '>=', $desde);
+            }
+
+            if ($request->filled('fecha_hasta')) {
+                $hasta = Carbon::parse($request->fecha_hasta, $zonaHoraria)->endOfDay()->setTimezone('UTC');
+                $query->where('created_at', '<=', $hasta);
+            }
+
+            if ($request->filled('monto_min')) {
+                $query->where('total', '>=', (float) $request->monto_min);
+            }
+
+            if ($request->filled('monto_max')) {
+                $query->where('total', '<=', (float) $request->monto_max);
+            }
+
+            return $query;
+        };
+
         if ($user->isAdmin()) {
             $query = Venta::with(['user', 'caja']);
 
@@ -35,13 +76,7 @@ class VentaController extends Controller
                 $query->where('user_id', $request->user_id);
             }
 
-            if ($request->filled('medio_pago')) {
-                $query->where('medio_pago', $request->medio_pago);
-            }
-
-            if ($request->filled('fecha')) {
-                $query->whereDate('created_at', $request->fecha);
-            }
+            $aplicarFiltros($query);
 
             $ventas = $query->orderBy('created_at', 'desc')
                 ->paginate(15)
@@ -51,13 +86,7 @@ class VentaController extends Controller
         } else {
             $query = $user->ventas()->with('caja');
 
-            if ($request->filled('medio_pago')) {
-                $query->where('medio_pago', $request->medio_pago);
-            }
-
-            if ($request->filled('fecha')) {
-                $query->whereDate('created_at', $request->fecha);
-            }
+            $aplicarFiltros($query);
 
             $ventas = $query->orderBy('created_at', 'desc')
                 ->paginate(15)
@@ -130,6 +159,7 @@ class VentaController extends Controller
             }
 
             $detallesData = [];
+            $movimientosPendientes = [];
             $totalVenta = 0.0;
 
             // 2. Procesar cada producto con bloqueo y verificación estricta de stock y valores
@@ -169,8 +199,18 @@ class VentaController extends Controller
 
                 $totalVenta += $subtotal;
 
-                // 3. Descontar stock automáticamente
-                $producto->decrement('stock', $cantidad);
+                // 3. Descontar stock y guardar los datos para el movimiento histórico
+                $stockAnterior = (int) $producto->stock;
+                $stockPosterior = $stockAnterior - $cantidad;
+
+                $producto->update(['stock' => $stockPosterior]);
+
+                $movimientosPendientes[] = [
+                    'producto_id' => $producto->id,
+                    'cantidad' => $cantidad,
+                    'stock_anterior' => $stockAnterior,
+                    'stock_posterior' => $stockPosterior,
+                ];
             }
 
             // 4. Crear registro de venta de cabecera
@@ -185,6 +225,19 @@ class VentaController extends Controller
             // 5. Crear los renglones y detalles de la venta
             foreach ($detallesData as $detalle) {
                 $ventaCreada->detalles()->create($detalle);
+            }
+
+            // 6. Registrar la salida de stock por la venta (trazabilidad completa del inventario)
+            foreach ($movimientosPendientes as $movimiento) {
+                MovimientoStock::create([
+                    'producto_id' => $movimiento['producto_id'],
+                    'user_id' => $user->id,
+                    'tipo' => MovimientoStock::TIPO_VENTA,
+                    'cantidad' => $movimiento['cantidad'],
+                    'stock_anterior' => $movimiento['stock_anterior'],
+                    'stock_posterior' => $movimiento['stock_posterior'],
+                    'observacion' => "Venta #{$ventaCreada->id}",
+                ]);
             }
 
             return $ventaCreada;
@@ -204,5 +257,86 @@ class VentaController extends Controller
         $venta->load(['user', 'caja', 'detalles.producto']);
 
         return view('ventas.show', compact('venta'));
+    }
+
+    /**
+     * Anula una venta completada y estorna el stock al inventario.
+     *
+     * El proceso se ejecuta dentro de una transacción:
+     *  1. Bloquea la venta para evitar anulaciones simultáneas.
+     *  2. Devuelve al stock cada producto vendido, registrando el movimiento histórico.
+     *  3. Marca la venta como anulada con los datos de auditoría.
+     *  4. Si la caja asociada ya estaba cerrada, recalcula su arqueo congelado.
+     */
+    public function anular(AnularVentaRequest $request, Venta $venta): RedirectResponse
+    {
+        Gate::authorize('anular', $venta);
+
+        /** @var User $user */
+        $user = Auth::user();
+        $motivo = $request->validated('motivo');
+
+        DB::transaction(function () use ($venta, $user, $motivo) {
+            // 1. Bloqueo de la fila para evitar dobles anulaciones concurrentes
+            $ventaBloqueada = Venta::whereKey($venta->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($ventaBloqueada->esAnulada()) {
+                throw ValidationException::withMessages([
+                    'motivo' => 'Esta venta ya fue anulada previamente.',
+                ]);
+            }
+
+            // 2. Estorno del stock y registro del movimiento por cada renglón vendido
+            foreach ($ventaBloqueada->detalles as $detalle) {
+                $producto = Producto::whereKey($detalle->producto_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $producto) {
+                    continue;
+                }
+
+                $stockAnterior = (int) $producto->stock;
+                $stockPosterior = $stockAnterior + (int) $detalle->cantidad;
+
+                $producto->update(['stock' => $stockPosterior]);
+
+                MovimientoStock::create([
+                    'producto_id' => $producto->id,
+                    'user_id' => $user->id,
+                    'tipo' => MovimientoStock::TIPO_ANULACION,
+                    'cantidad' => $detalle->cantidad,
+                    'stock_anterior' => $stockAnterior,
+                    'stock_posterior' => $stockPosterior,
+                    'observacion' => "Anulación de la venta #{$ventaBloqueada->id}: {$motivo}",
+                ]);
+            }
+
+            // 3. Marca de anulación con datos de auditoría
+            $ventaBloqueada->update([
+                'estado' => 'anulada',
+                'motivo_anulacion' => $motivo,
+                'anulada_por' => $user->id,
+                'anulada_at' => now(),
+            ]);
+
+            // 4. Si la caja ya estaba cerrada, se recalcula su arqueo congelado.
+            //    El monto real contado físicamente no se modifica.
+            $caja = $ventaBloqueada->caja;
+
+            if ($caja && $caja->estaCerrada()) {
+                $nuevoEsperado = round((float) $caja->monto_inicial + $caja->totalVentasEfectivo(), 2);
+
+                $caja->update([
+                    'monto_esperado' => $nuevoEsperado,
+                    'diferencia' => round((float) $caja->monto_real - $nuevoEsperado, 2),
+                ]);
+            }
+        });
+
+        return redirect()->route('ventas.show', $venta)
+            ->with('success', "Venta #{$venta->id} anulada exitosamente. El stock fue devuelto al inventario.");
     }
 }

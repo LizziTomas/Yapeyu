@@ -1,58 +1,173 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Yapeyu — Sistema de Gestión para Local Comercial
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicación web desarrollada con **Laravel** para la gestión diaria de un local comercial
+("Casa Yacobone"): control de stock, caja, ventas y reportes, con autenticación y roles.
 
-## About Laravel
+Proyecto académico — Trabajo final de la carrera.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Características principales
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Autenticación y seguridad
+- Registro/Login con **Laravel Breeze**.
+- Roles y permisos con **Spatie Laravel Permission** (`admin`, `vendedor`).
+- **Políticas de autorización** por recurso (cajas, ventas, productos, movimientos de stock, usuarios).
+- Verificación de permisos tanto en las vistas (`@can`, `Gate::authorize`) como en el backend.
 
-## Learning Laravel
+### Productos
+- Alta, edición, baja y listado de productos (solo administradores gestionan; todos consultan).
+- Control de stock actual, stock mínimo, precio de costo y precio de venta.
+- Estado activo/inactivo y alertas de stock bajo.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Movimientos de stock (trazabilidad completa del inventario)
+- **Ingreso** de mercadería (entrada manual de stock).
+- **Venta**: cada venta descuenta stock y genera automáticamente su movimiento histórico.
+- **Anulación de venta**: estorna el stock y registra el movimiento de devolución.
+- **Descarte**: registra merma/rotura/vencimiento con un motivo (solo administradores).
+- Historial con filtros por producto, usuario y tipo, con detalle de stock anterior/posterior.
+- **El stock de cada producto se reconcilia exactamente con la suma de sus movimientos.**
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Caja
+- Apertura y cierre de caja por turno, con monto inicial en efectivo.
+- Arqueo: cálculo del **dinero físico esperado** (monto inicial + ventas en efectivo).
+- Registro del monto real contado y cálculo automático de la **diferencia** (sobrante/faltante).
+- Cierre congelado del arqueo: si una venta se anula luego del cierre, la caja se recalcula.
+- **Ticket de cierre imprimible** con el resumen completo del turno.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### Ventas
+- Registro de ventas con múltiples productos y control estricto de stock (transaccional con `lockForUpdate`).
+- Medios de pago: efectivo, transferencia y tarjeta.
+- Comprobante de venta en pantalla.
+- **Anulación de ventas** con motivo y auditoría (quién y cuándo), restaurando el stock.
+- Filtros por estado y por vendedor.
 
-## Agentic Development
+### Reportes
+- Reporte de ventas por período con filtros (fechas, vendedor, medio de pago).
+- Resumen consolidado: cantidad de operaciones, total facturado y desglose por medio de pago.
+- Contador de ventas anuladas del período (no afectan los totales).
+- **Exportación del detalle a CSV** compatible con Excel (UTF-8, separador `;`, decimales con coma).
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### Interfaz
+- **Bootstrap 5** + Bootstrap Icons (vía CDN) con una hoja de estilos propia.
+- **Modo claro / oscuro** con preferencia persistente en el navegador.
+- Diseño responsive (barra lateral colapsable en móviles).
+
+---
+
+## Requisitos
+
+- **PHP** >= 8.3
+- **Composer**
+- **SQLite** (por defecto, no requiere servidor de base de datos) o MySQL
+- Extensiones PHP estándar de Laravel (`pdo`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`)
+
+---
+
+## Instalación
 
 ```bash
-composer require laravel/boost --dev
+# 1. Clonar el repositorio
+git clone <url-del-repositorio> proyecto3
+cd proyecto3
 
-php artisan boost:install
+# 2. Instalar dependencias de PHP
+composer install
+
+# 3. Crear el archivo de entorno y generar la clave de la aplicación
+copy .env.example .env       # Windows
+# cp .env.example .env       # Linux / macOS
+php artisan key:generate
+
+# 4. Crear la base de datos SQLite
+type nul > database/database.sqlite      # Windows
+# touch database/database.sqlite         # Linux / macOS
+
+# 5. Ejecutar migraciones y datos iniciales (roles, permisos y admin)
+php artisan migrate --seed
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+> **Nota:** en el entorno `local`, el `DatabaseSeeder` también carga **datos de demostración**
+> (productos, cajas, ventas de los últimos 60 días, anulaciones y descartes) para poder
+> presentar el sistema con información realista. En otros entornos no se cargan.
 
-## Contributing
+### Datos de demostración
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+| Rol       | Email                  | Contraseña    |
+|-----------|------------------------|---------------|
+| Admin     | `admin@local.test`     | `admin123`    |
+| Vendedor  | `vendedor1@local.test` | `vendedor123` |
+| Vendedor  | `vendedor2@local.test` | `vendedor123` |
+| Vendedor  | `vendedor3@local.test` | `vendedor123` |
 
-## Code of Conduct
+Para regenerar la base con datos de demostración desde cero:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan migrate:fresh --seed
+```
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Uso
 
-## License
+```bash
+php artisan serve
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Luego abrir `http://localhost:8000` e iniciar sesión con alguno de los usuarios anteriores.
+
+---
+
+## Pruebas
+
+El proyecto cuenta con una suite de pruebas de funcionalidad (**Pest**) que cubre
+autenticación, autorización por roles, productos, cajas, ventas, anulaciones,
+descartes de stock, movimientos y reportes.
+
+```bash
+php artisan test
+```
+
+---
+
+## Estructura del proyecto
+
+```
+app/
+├── Http/
+│   ├── Controllers/    → Controladores (Caja, Venta, Producto, MovimientoStock, Reporte, ...)
+│   ├── Middleware/     → Filtros (autenticación, rol admin)
+│   └── Requests/       → Validación de formularios
+├── Models/             → Modelos Eloquent (Caja, Venta, VentaDetalle, Producto, MovimientoStock, ...)
+├── Policies/           → Autorización por recurso
+└── helpers.php         → Funciones auxiliares (configuracion(), monto())
+
+database/
+├── factories/          → Datos falsos para pruebas
+├── migrations/         → Esquema de la base de datos
+└── seeders/            → Roles/permisos, admin y datos de demostración
+
+resources/views/        → Vistas Blade (dashboard, productos, cajas, ventas, reportes, stock)
+routes/web.php          → Rutas de la aplicación
+tests/Feature/          → Pruebas de funcionalidad
+```
+
+---
+
+## Tecnologías
+
+| Componente        | Tecnología                              |
+|-------------------|-----------------------------------------|
+| Framework         | Laravel 13                              |
+| Lenguaje          | PHP 8.3                                 |
+| Base de datos     | SQLite (desarrollo) / MySQL (opcional)  |
+| Autenticación     | Laravel Breeze                          |
+| Roles y permisos  | Spatie Laravel Permission               |
+| Frontend          | Blade + Bootstrap 5 (CDN)               |
+| Pruebas           | Pest                                    |
+
+---
+
+## Licencia
+
+Software de uso académico. Desarrollado como proyecto final de carrera.

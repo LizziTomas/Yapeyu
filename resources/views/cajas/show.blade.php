@@ -9,7 +9,10 @@
                     <h1 class="h4 mb-1 fw-semibold">Detalle de Caja #{{ $caja->id }}</h1>
                     <p class="text-muted small mb-0">Información general y estado de la sesión de caja</p>
                 </div>
-                <div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('cajas.ticket', $caja) }}" class="btn btn-outline-secondary btn-sm" title="Abrir el ticket de arqueo imprimible">
+                        <i class="bi bi-printer me-1"></i> Ticket
+                    </a>
                     @if ($caja->estaAbierta())
                         <span class="badge bg-success fs-6">Abierta</span>
                     @else
@@ -41,12 +44,12 @@
 
                         <div class="col-sm-6">
                             <span class="text-muted small d-block mb-1">Fecha y Hora de Apertura</span>
-                            <span class="fw-medium">{{ $caja->fecha_apertura->format('d/m/Y H:i') }} hs</span>
+                            <span class="fw-medium">{{ $caja->fecha_apertura->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y H:i') }} hs</span>
                         </div>
                         <div class="col-sm-6">
                             <span class="text-muted small d-block mb-1">Fecha y Hora de Cierre</span>
                             @if ($caja->fecha_cierre)
-                                <span class="fw-medium">{{ $caja->fecha_cierre->format('d/m/Y H:i') }} hs</span>
+                                <span class="fw-medium">{{ $caja->fecha_cierre->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y H:i') }} hs</span>
                             @else
                                 <span class="text-muted fst-italic">Sesión en curso</span>
                             @endif

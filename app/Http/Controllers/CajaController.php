@@ -111,6 +111,19 @@ class CajaController extends Controller
     }
 
     /**
+     * Muestra el comprobante imprimible del arqueo de una caja.
+     * Usa la misma autorización que la vista de detalle de la caja.
+     */
+    public function ticket(Caja $caja): View
+    {
+        Gate::authorize('view', $caja);
+
+        $caja->load('user');
+
+        return view('cajas.ticket', ['caja' => $caja]);
+    }
+
+    /**
      * Registra el arqueo y cierre de la caja.
      * El cálculo de la diferencia se realiza estrictamente en el backend.
      */

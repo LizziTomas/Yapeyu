@@ -302,3 +302,39 @@ test('no se puede eliminar un usuario con registros de caja asociados para prese
         'id' => $vendedor->id,
     ]);
 });
+
+test('un vendedor puede ver el ticket de arqueo de su propia caja', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    $caja = Caja::factory()->cerrada()->create([
+        'user_id' => $vendedor->id,
+        'monto_inicial' => 10000.00,
+        'monto_esperado' => 15000.00,
+    ]);
+
+    $response = $this->actingAs($vendedor)->get(route('cajas.ticket', $caja));
+
+    $response->assertStatus(200);
+    $response->assertSee('Ticket de Cierre de Caja');
+    $response->assertSee(monto(10000));
+    $response->assertSee('#'.$caja->id);
+});
+
+test('un vendedor no puede ver el ticket de la caja de otro vendedor', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    $otro = User::factory()->create();
+    $otro->assignRole('vendedor');
+
+    $caja = Caja::factory()->create(['user_id' => $otro->id]);
+
+    $this->actingAs($vendedor)->get(route('cajas.ticket', $caja))->assertForbidden();
+});
+
+test('usuarios no autenticados son redirigidos al login en el ticket de caja', function () {
+    $caja = Caja::factory()->create();
+
+    $this->get(route('cajas.ticket', $caja))->assertRedirect(route('login'));
+});

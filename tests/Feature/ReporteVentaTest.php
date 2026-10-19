@@ -468,6 +468,85 @@ test('12. pagination links preserve selected filter query parameters', function 
     $response->assertSee('page=2');
 });
 
+test('exporta el detalle de ventas del período en formato CSV para Excel', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $caja = Caja::factory()->create(['user_id' => $admin->id]);
+
+    Venta::forceCreate([
+        'caja_id' => $caja->id,
+        'user_id' => $admin->id,
+        'total' => 12000.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::parse('2026-10-05 14:00:00', 'America/Argentina/Buenos_Aires')->setTimezone('UTC'),
+    ]);
+
+    Venta::forceCreate([
+        'caja_id' => $caja->id,
+        'user_id' => $admin->id,
+        'total' => 18000.00,
+        'medio_pago' => 'transferencia',
+        'estado' => 'completada',
+        'created_at' => Carbon::parse('2026-10-06 11:30:00', 'America/Argentina/Buenos_Aires')->setTimezone('UTC'),
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('reportes.ventas.exportar', [
+        'fecha_desde' => '2026-10-01',
+        'fecha_hasta' => '2026-10-10',
+    ]));
+
+    $response->assertStatus(200);
+
+    expect($response->headers->get('content-type'))->toContain('text/csv')
+        ->and($response->headers->get('content-disposition'))->toContain('reporte_ventas_2026-10-01_a_2026-10-10.csv');
+
+    $contenido = $response->streamedContent();
+
+    expect($contenido)->toContain('"N° Venta";Fecha;Hora;Vendedor;Caja;"Medio de pago";Estado;Total')
+        ->and($contenido)->toContain('Efectivo')
+        ->and($contenido)->toContain('Transferencia')
+        ->and($contenido)->toContain(monto(12000))
+        ->and($contenido)->toContain(monto(30000));
+});
+
+test('la exportación CSV respeta la autorización y no expone ventas de otros vendedores', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    $otro = User::factory()->create();
+    $otro->assignRole('vendedor');
+
+    $cajaPropia = Caja::factory()->create(['user_id' => $vendedor->id]);
+    $cajaAjena = Caja::factory()->create(['user_id' => $otro->id]);
+
+    Venta::forceCreate([
+        'caja_id' => $cajaPropia->id,
+        'user_id' => $vendedor->id,
+        'total' => 12000.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::parse('2026-10-05 14:00:00', 'America/Argentina/Buenos_Aires')->setTimezone('UTC'),
+    ]);
+
+    Venta::forceCreate([
+        'caja_id' => $cajaAjena->id,
+        'user_id' => $otro->id,
+        'total' => 88888.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::parse('2026-10-05 15:00:00', 'America/Argentina/Buenos_Aires')->setTimezone('UTC'),
+    ]);
+
+    $contenido = $this->actingAs($vendedor)->get(route('reportes.ventas.exportar', [
+        'fecha_desde' => '2026-10-01',
+        'fecha_hasta' => '2026-10-10',
+    ]))->streamedContent();
+
+    expect($contenido)->toContain(monto(12000))
+        ->and($contenido)->not->toContain(monto(88888));
+});
+
 test('displays empty state when no completed sales match the filters', function () {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
@@ -480,4 +559,55 @@ test('displays empty state when no completed sales match the filters', function 
     $response->assertStatus(200);
     $response->assertSee('Sin operaciones encontradas');
     $response->assertSee('No se encontraron ventas completadas para el período y filtros seleccionados');
+});
+
+test('el reporte incluye los datos y los contenedores de los gráficos del período', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $caja = Caja::factory()->create(['user_id' => $admin->id]);
+
+    Venta::forceCreate([
+        'caja_id' => $caja->id,
+        'user_id' => $admin->id,
+        'total' => 12000.00,
+        'medio_pago' => 'efectivo',
+        'estado' => 'completada',
+        'created_at' => Carbon::parse('2026-10-05 14:00:00', 'America/Argentina/Buenos_Aires')->setTimezone('UTC'),
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('reportes.ventas', [
+        'fecha_desde' => '2026-10-01',
+        'fecha_hasta' => '2026-10-10',
+    ]));
+
+    $response->assertStatus(200);
+
+    // Contenedores de los gráficos
+    $response->assertSee('id="graficoEvolucion"', false);
+    $response->assertSee('id="graficoMediosPago"', false);
+
+    // Datos inyectados en la vista para Chart.js
+    $response->assertSee('var etiquetasSerie =', false);
+    $response->assertSee('var valoresSerie =', false);
+    $response->assertSee('var agrupacion = "diaria"', false);
+
+    // El período de 10 días genera 10 puntos en la serie (las barras se escapan como \/)
+    $response->assertSee('var etiquetasSerie = ["01\/10","02\/10","03\/10","04\/10","05\/10","06\/10","07\/10","08\/10","09\/10","10\/10"];', false);
+
+    // La venta del 05/10 cae en el quinto punto de la serie
+    $response->assertSee('var valoresSerie = [0,0,0,0,12000,0,0,0,0,0];', false);
+});
+
+test('el gráfico del reporte se agrupa por mes cuando el período es extenso', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $response = $this->actingAs($admin)->get(route('reportes.ventas', [
+        'fecha_desde' => '2025-01-01',
+        'fecha_hasta' => '2026-12-31',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSee('var agrupacion = "mensual"', false);
+    $response->assertSee('Por mes');
 });

@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::get('cajas/abrir', [CajaController::class, 'create'])->name('cajas.create');
     Route::post('cajas', [CajaController::class, 'store'])->name('cajas.store');
     Route::get('cajas/{caja}', [CajaController::class, 'show'])->name('cajas.show');
+    Route::get('cajas/{caja}/ticket', [CajaController::class, 'ticket'])->name('cajas.ticket');
     Route::post('cajas/{caja}/cerrar', [CajaController::class, 'cerrar'])->name('cajas.cerrar');
 
     // Módulo de Ventas (Admin y Vendedor según políticas de autorización)
@@ -39,15 +40,19 @@ Route::middleware('auth')->group(function () {
     Route::get('ventas/crear', [VentaController::class, 'create'])->name('ventas.create');
     Route::post('ventas', [VentaController::class, 'store'])->name('ventas.store');
     Route::get('ventas/{venta}', [VentaController::class, 'show'])->name('ventas.show');
+    Route::post('ventas/{venta}/anular', [VentaController::class, 'anular'])->name('ventas.anular');
 
-    // Módulo de Movimientos de Stock (Historial e Ingresos de Mercadería)
+    // Módulo de Movimientos de Stock (Historial, Ingresos y Descartes de Mercadería)
     Route::get('movimientos-stock', [MovimientoStockController::class, 'index'])->name('movimientos-stock.index');
     Route::get('movimientos-stock/crear', [MovimientoStockController::class, 'create'])->name('movimientos-stock.create');
+    Route::get('movimientos-stock/descartar', [MovimientoStockController::class, 'descartarForm'])->name('movimientos-stock.descartar');
+    Route::post('movimientos-stock/descartar', [MovimientoStockController::class, 'descartarStore'])->name('movimientos-stock.descartar.store');
     Route::post('movimientos-stock', [MovimientoStockController::class, 'store'])->name('movimientos-stock.store');
     Route::get('movimientos-stock/{movimientoStock}', [MovimientoStockController::class, 'show'])->name('movimientos-stock.show');
 
     // Módulo de Reportes de Ventas por Período
     Route::get('reportes/ventas', [ReporteVentaController::class, 'index'])->name('reportes.ventas');
+    Route::get('reportes/ventas/exportar', [ReporteVentaController::class, 'exportar'])->name('reportes.ventas.exportar');
 });
 
 // Rutas de administración (SOLO para administradores)

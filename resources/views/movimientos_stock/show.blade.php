@@ -4,7 +4,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
                     <h1 class="h4 mb-0 fw-semibold">Movimiento de Stock #{{ $movimiento->id }}</h1>
-                    <span class="text-muted small">Registrado el {{ $movimiento->created_at->format('d/m/Y \a \l\a\s H:i') }} hs</span>
+                    <span class="text-muted small">Registrado el {{ $movimiento->created_at->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y \a \l\a\s H:i') }} hs</span>
                 </div>
                 <div class="d-flex gap-2">
                     <a href="{{ route('movimientos-stock.index') }}" class="btn btn-outline-secondary btn-sm">
@@ -22,9 +22,23 @@
                 <div class="card-header bg-white border-bottom py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="fw-semibold">Detalle del Movimiento</span>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle text-uppercase px-2 py-1">
-                            {{ $movimiento->tipo }}
-                        </span>
+                        @if ($movimiento->esDescarte())
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle text-uppercase px-2 py-1">
+                                {{ $movimiento->tipoLabel() }}
+                            </span>
+                        @elseif ($movimiento->esVenta())
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle text-uppercase px-2 py-1">
+                                {{ $movimiento->tipoLabel() }}
+                            </span>
+                        @elseif ($movimiento->esAnulacion())
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle text-uppercase px-2 py-1">
+                                {{ $movimiento->tipoLabel() }}
+                            </span>
+                        @else
+                            <span class="badge bg-success-subtle text-success border border-success-subtle text-uppercase px-2 py-1">
+                                {{ $movimiento->tipoLabel() }}
+                            </span>
+                        @endif
                     </div>
                 </div>
                 <div class="card-body p-4">
@@ -34,7 +48,7 @@
                             <span class="fs-6 fw-semibold text-dark">{{ $movimiento->producto->nombre ?? 'Producto no disponible' }}</span>
                         </div>
                         <div class="col-sm-6">
-                            <span class="text-muted small d-block">Usuario que registró el ingreso</span>
+                            <span class="text-muted small d-block">Usuario que registró el movimiento</span>
                             <span class="fs-6 fw-medium text-dark">{{ $movimiento->user->name ?? 'Usuario no disponible' }}</span>
                         </div>
                     </div>
@@ -45,8 +59,10 @@
                             <span class="fs-5 fw-medium text-secondary">{{ number_format($movimiento->stock_anterior, 0, ',', '.') }}</span>
                         </div>
                         <div class="col-4 text-center border-end">
-                            <span class="text-muted small d-block mb-1">Cantidad Ingresada</span>
-                            <span class="fs-5 fw-bold text-success">+{{ number_format($movimiento->cantidad, 0, ',', '.') }}</span>
+                            <span class="text-muted small d-block mb-1">Cantidad</span>
+                            <span class="fs-5 fw-bold {{ $movimiento->sumaStock() ? 'text-success' : 'text-danger' }}">
+                                {{ $movimiento->sumaStock() ? '+' : '−' }}{{ number_format($movimiento->cantidad, 0, ',', '.') }}
+                            </span>
                         </div>
                         <div class="col-4 text-center">
                             <span class="text-muted small d-block mb-1">Stock Resultante</span>
