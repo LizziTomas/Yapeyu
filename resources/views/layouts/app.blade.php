@@ -263,6 +263,11 @@
                                     <i class="bi bi-receipt"></i> Ventas
                                 </a>
                             </li>
+                            <li>
+                                <a class="sidebar-link {{ request()->routeIs('reportes.*') ? 'active' : '' }}" href="{{ route('reportes.ventas') }}">
+                                    <i class="bi bi-file-earmark-bar-graph"></i> Reportes
+                                </a>
+                            </li>
                         @endcan
                         @if (Auth::check() && Auth::user()->hasRole('admin'))
                             <li>

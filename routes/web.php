@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MovimientoStockController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReporteVentaController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
 use Illuminate\Support\Facades\Route;
@@ -44,6 +45,9 @@ Route::middleware('auth')->group(function () {
     Route::get('movimientos-stock/crear', [MovimientoStockController::class, 'create'])->name('movimientos-stock.create');
     Route::post('movimientos-stock', [MovimientoStockController::class, 'store'])->name('movimientos-stock.store');
     Route::get('movimientos-stock/{movimientoStock}', [MovimientoStockController::class, 'show'])->name('movimientos-stock.show');
+
+    // Módulo de Reportes de Ventas por Período
+    Route::get('reportes/ventas', [ReporteVentaController::class, 'index'])->name('reportes.ventas');
 });
 
 // Rutas de administración (SOLO para administradores)
