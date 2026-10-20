@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CajaController;
+use App\Http\Controllers\ChatIAController;
 use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MovimientoStockController;
@@ -44,6 +45,10 @@ Route::middleware('auth')->group(function () {
     Route::get('movimientos-stock/crear', [MovimientoStockController::class, 'create'])->name('movimientos-stock.create');
     Route::post('movimientos-stock', [MovimientoStockController::class, 'store'])->name('movimientos-stock.store');
     Route::get('movimientos-stock/{movimientoStock}', [MovimientoStockController::class, 'show'])->name('movimientos-stock.show');
+
+    // Rutas del asistente: pantalla del chat y envio de mensajes a Ollama.
+    Route::get('asistente', [ChatIAController::class, 'index'])->name('chat-ia.index');
+    Route::post('asistente/mensaje', [ChatIAController::class, 'mensaje'])->name('chat-ia.mensaje');
 });
 
 // Rutas de administración (SOLO para administradores)
