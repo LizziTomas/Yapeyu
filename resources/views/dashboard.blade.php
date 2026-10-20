@@ -21,8 +21,25 @@
                         <span class="icon-tile"><i class="bi bi-currency-dollar"></i></span>
                     </div>
                     <div class="kpi-value tabular">$ {{ monto($totalVendidoHoy) }}</div>
-                    <div class="small text-body-secondary border-top pt-2 mt-3">
-                        {{ $cantidadVentasHoy }} {{ $cantidadVentasHoy === 1 ? 'venta registrada' : 'ventas registradas' }}
+                    <div class="small text-body-secondary border-top pt-2 mt-3 d-flex align-items-center gap-2 flex-wrap">
+                        <span>{{ $cantidadVentasHoy }} {{ $cantidadVentasHoy === 1 ? 'venta registrada' : 'ventas registradas' }}</span>
+                        @if ($variacionAyer === null)
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis" title="Sin ventas registradas ayer para comparar">
+                                <i class="bi bi-dash-lg me-1"></i>Sin base de ayer
+                            </span>
+                        @elseif ($variacionAyer > 0)
+                            <span class="badge bg-success-subtle text-success-emphasis" title="Comparación contra las ventas de ayer">
+                                <i class="bi bi-arrow-up-right me-1"></i>{{ number_format($variacionAyer, 1, ',', '.') }}% vs. ayer
+                            </span>
+                        @elseif ($variacionAyer < 0)
+                            <span class="badge bg-danger-subtle text-danger-emphasis" title="Comparación contra las ventas de ayer">
+                                <i class="bi bi-arrow-down-right me-1"></i>{{ number_format(abs($variacionAyer), 1, ',', '.') }}% vs. ayer
+                            </span>
+                        @else
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis" title="Mismo monto que ayer">
+                                <i class="bi bi-dash-lg me-1"></i>Igual que ayer
+                            </span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -156,7 +173,7 @@
                             <div class="row g-3 mb-3 small">
                                 <div class="col-4">
                                     <span class="text-body-secondary d-block">Apertura</span>
-                                    <strong class="tabular">{{ $cajaAbierta->fecha_apertura->format('H:i') }} hs</strong>
+                                    <strong class="tabular">{{ $cajaAbierta->fecha_apertura->setTimezone('America/Argentina/Buenos_Aires')->format('H:i') }} hs</strong>
                                 </div>
                                 <div class="col-4">
                                     <span class="text-body-secondary d-block">Monto inicial</span>
@@ -205,7 +222,7 @@
                                         <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
                                             <div>
                                                 <strong>{{ $otraCaja->user->name }}</strong>
-                                                <span class="text-body-secondary d-block small">Abierta desde las {{ $otraCaja->fecha_apertura->format('H:i') }} hs</span>
+                                                <span class="text-body-secondary d-block small">Abierta desde las {{ $otraCaja->fecha_apertura->setTimezone('America/Argentina/Buenos_Aires')->format('H:i') }} hs</span>
                                             </div>
                                             <div class="text-end">
                                                 <span class="fw-semibold tabular">$ {{ monto($otraCaja->dineroEsperado()) }}</span>
@@ -220,6 +237,44 @@
                 </div>
             </div>
         @endcan
+    </div>
+
+    <!-- Fila 2b: Gráficos de evolución y medios de pago -->
+    <div class="row g-3 mb-4">
+        <!-- Evolución de ventas de los últimos 7 días -->
+        <div class="col-lg-8">
+            <div class="card card-panel h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="icon-tile icon-tile-sm"><i class="bi bi-graph-up"></i></span>
+                        <h2 class="h6 mb-0 fw-semibold">Ventas de los últimos 7 días</h2>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary-emphasis tabular">
+                        Total: $ {{ monto($totalSemana) }}
+                    </span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="grafico-contenedor">
+                        <canvas id="graficoVentasSemana" aria-label="Evolución de ventas de los últimos 7 días" role="img"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribución de medios de pago del día -->
+        <div class="col-lg-4">
+            <div class="card card-panel h-100">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <span class="icon-tile icon-tile-sm"><i class="bi bi-pie-chart"></i></span>
+                    <h2 class="h6 mb-0 fw-semibold">Medios de pago de hoy</h2>
+                </div>
+                <div class="card-body p-4">
+                    <div class="grafico-contenedor-dona">
+                        <canvas id="graficoMediosHoy" aria-label="Distribución de medios de pago del día" role="img"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Fila 3: Productos con Stock Bajo -->
@@ -279,4 +334,61 @@
             @endif
         </div>
     </div>
+
+    {{-- Gráficos: evolución de los últimos 7 días y distribución por medio de pago --}}
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var G = window.YapeyuGraficos;
+
+                var etiquetasSemana = @json($etiquetasSemana);
+                var totalesSemana = @json($totalesSemana);
+                var hayVentasSemana = totalesSemana.some(function (valor) { return valor > 0; });
+
+                G.registrar('graficoVentasSemana', function (t) {
+                    return {
+                        type: 'line',
+                        data: {
+                            labels: etiquetasSemana,
+                            datasets: [{
+                                label: 'Vendido',
+                                data: totalesSemana,
+                                borderColor: '#0d6efd',
+                                backgroundColor: 'rgba(13, 110, 253, 0.14)',
+                                borderWidth: 2,
+                                tension: 0.35,
+                                fill: true,
+                                pointBackgroundColor: '#0d6efd',
+                                pointBorderColor: t.tooltipTexto,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            }]
+                        },
+                        options: G.opcionesEjes(t)
+                    };
+                }, hayVentasSemana);
+
+                var etiquetasMedios = ['Efectivo', 'Transferencia', 'Tarjeta'];
+                var valoresMedios = [{{ $efectivoHoy }}, {{ $transferenciaHoy }}, {{ $tarjetaHoy }}];
+                var hayMedios = valoresMedios.some(function (valor) { return valor > 0; });
+
+                G.registrar('graficoMediosHoy', function (t) {
+                    return {
+                        type: 'doughnut',
+                        data: {
+                            labels: etiquetasMedios,
+                            datasets: [{
+                                data: valoresMedios,
+                                backgroundColor: ['#198754', '#0d6efd', '#0dcaf0'],
+                                borderColor: t.tooltipTexto,
+                                borderWidth: 2,
+                                hoverOffset: 6
+                            }]
+                        },
+                        options: G.opcionesDona(t)
+                    };
+                }, hayMedios);
+            });
+        </script>
+    @endpush
 </x-app-layout>

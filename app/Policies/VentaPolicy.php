@@ -38,6 +38,27 @@ class VentaPolicy
     }
 
     /**
+     * Determina si el usuario puede anular una venta existente.
+     * Requiere el permiso 'anular ventas' y que la venta siga completada.
+     * El administrador puede anular cualquier venta, esté su caja abierta o cerrada.
+     * El vendedor solo puede anular sus propias ventas mientras su caja siga abierta.
+     */
+    public function anular(User $user, Venta $venta): bool
+    {
+        if (! $user->can('anular ventas') || ! $venta->esCompletada()) {
+            return false;
+        }
+
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->id === $venta->user_id
+            && $venta->caja
+            && $venta->caja->estaAbierta();
+    }
+
+    /**
      * Las ventas confirmadas no pueden editarse (representan registros históricos).
      */
     public function update(User $user, Venta $venta): bool

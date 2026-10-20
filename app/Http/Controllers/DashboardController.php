@@ -39,6 +39,25 @@ class DashboardController extends Controller
         $totalVendidoHoy = (float) (clone $ventasHoyQuery)->sum('total');
         $cantidadVentasHoy = (int) (clone $ventasHoyQuery)->count();
 
+        // 1b. Comparación contra el día anterior (tendencia del KPI principal)
+        $inicioAyer = Carbon::now($zonaHoraria)->subDay()->startOfDay()->setTimezone('UTC');
+        $finAyer = Carbon::now($zonaHoraria)->subDay()->endOfDay()->setTimezone('UTC');
+
+        $ventasAyerQuery = Venta::where('estado', 'completada')
+            ->whereBetween('created_at', [$inicioAyer, $finAyer]);
+
+        if (! $user->isAdmin()) {
+            $ventasAyerQuery->where('user_id', $user->id);
+        }
+
+        $totalVendidoAyer = (float) $ventasAyerQuery->sum('total');
+
+        // Variación porcentual respecto de ayer (null cuando no hay base de comparación)
+        $variacionAyer = null;
+        if ($totalVendidoAyer > 0) {
+            $variacionAyer = round((($totalVendidoHoy - $totalVendidoAyer) / $totalVendidoAyer) * 100, 1);
+        }
+
         // 2. Desglose de Medios de Pago de Hoy
         $mediosPagoHoy = (clone $ventasHoyQuery)
             ->selectRaw('medio_pago, SUM(total) as total')
@@ -48,6 +67,46 @@ class DashboardController extends Controller
         $efectivoHoy = (float) ($mediosPagoHoy['efectivo'] ?? 0);
         $transferenciaHoy = (float) ($mediosPagoHoy['transferencia'] ?? 0);
         $tarjetaHoy = (float) ($mediosPagoHoy['tarjeta'] ?? 0);
+
+        // 2b. Serie de los últimos 7 días para el gráfico de evolución
+        $inicioSemana = Carbon::now($zonaHoraria)->subDays(6)->startOfDay();
+        $finSemana = Carbon::now($zonaHoraria)->endOfDay();
+
+        $ventasSemanaQuery = Venta::where('estado', 'completada')
+            ->whereBetween('created_at', [
+                $inicioSemana->copy()->setTimezone('UTC'),
+                $finSemana->copy()->setTimezone('UTC'),
+            ]);
+
+        if (! $user->isAdmin()) {
+            $ventasSemanaQuery->where('user_id', $user->id);
+        }
+
+        // Se agrupa en PHP por día del negocio (la base guarda UTC, el negocio opera en hora argentina)
+        $totalesPorDia = $ventasSemanaQuery->get(['created_at', 'total'])
+            ->groupBy(fn (Venta $venta) => $venta->created_at->setTimezone($zonaHoraria)->toDateString())
+            ->map(fn ($grupo) => round((float) $grupo->sum('total'), 2));
+
+        $diasSemana = [];
+        $etiquetasSemana = [];
+        $totalesSemana = [];
+
+        for ($i = 6; $i >= 0; $i--) {
+            $dia = Carbon::now($zonaHoraria)->subDays($i);
+            $clave = $dia->toDateString();
+
+            $diasSemana[] = [
+                'etiqueta' => $dia->translatedFormat('D').' '.$dia->format('d/m'),
+                'iso' => $clave,
+                'total' => $totalesPorDia->get($clave, 0.0),
+            ];
+
+            $etiquetasSemana[] = $dia->format('d/m');
+            $totalesSemana[] = $totalesPorDia->get($clave, 0.0);
+        }
+
+        // Total vendido en los últimos 7 días (dato de apoyo del gráfico)
+        $totalSemana = round((float) array_sum($totalesSemana), 2);
 
         // 3. Consulta de Ventas del Mes
         $ventasMesQuery = Venta::where('estado', 'completada')
@@ -77,6 +136,8 @@ class DashboardController extends Controller
         return view('dashboard', compact(
             'totalVendidoHoy',
             'cantidadVentasHoy',
+            'totalVendidoAyer',
+            'variacionAyer',
             'efectivoHoy',
             'transferenciaHoy',
             'tarjetaHoy',
@@ -88,7 +149,11 @@ class DashboardController extends Controller
             'cantidadStockBajo',
             'productosStockBajoLista',
             'cajaAbierta',
-            'cajasAbiertasNegocio'
+            'cajasAbiertasNegocio',
+            'etiquetasSemana',
+            'totalesSemana',
+            'totalSemana',
+            'diasSemana'
         ));
     }
 }

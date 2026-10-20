@@ -1,10 +1,12 @@
 <?php
 
 use App\Models\Caja;
+use App\Models\MovimientoStock;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
 use App\Models\VentaDetalle;
+use Carbon\Carbon;
 
 test('usuarios no autenticados son redirigidos al login al acceder a rutas de ventas', function () {
     $venta = Venta::factory()->create();
@@ -57,6 +59,36 @@ test('un vendedor con caja abierta puede crear una venta exitosamente', function
 
     $producto->refresh();
     expect($producto->stock)->toBe(17);
+});
+
+test('el formulario de nueva venta incluye el buscador de productos', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    Caja::factory()->create(['user_id' => $vendedor->id, 'estado' => 'abierta']);
+
+    Producto::factory()->create([
+        'nombre' => 'Taladro Percutor Buscable',
+        'precio_venta' => 15000,
+        'stock' => 5,
+        'activo' => true,
+    ]);
+
+    $response = $this->actingAs($vendedor)->get(route('ventas.create'));
+
+    $response->assertStatus(200);
+
+    // El buscador que filtra las opciones está presente
+    $response->assertSee('id="buscadorProductos"', false);
+    $response->assertSee('Buscar producto por nombre');
+
+    // Cada renglón usa un selector nativo con todas las opciones del producto
+    $response->assertSee('select-producto', false);
+    $response->assertSee('Taladro Percutor Buscable (Stock: 5)', false);
+
+    // El filtrado de opciones está implementado en el script
+    $response->assertSee('function filtrarOpciones()', false);
+    $response->assertSee('filtrarOpciones();', false);
 });
 
 test('un vendedor sin caja abierta no puede crear una venta', function () {
@@ -507,4 +539,213 @@ test('productos duplicados en una misma solicitud son consolidados correctamente
 
     $producto->refresh();
     expect($producto->stock)->toBe(15);
+});
+
+test('la venta genera un movimiento de stock tipo venta por cada producto vendido', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    Caja::factory()->create(['user_id' => $vendedor->id, 'estado' => 'abierta']);
+
+    $producto1 = Producto::factory()->create(['precio_costo' => 100, 'precio_venta' => 200, 'stock' => 10, 'activo' => true]);
+    $producto2 = Producto::factory()->create(['precio_costo' => 300, 'precio_venta' => 500, 'stock' => 10, 'activo' => true]);
+
+    $this->actingAs($vendedor)->post(route('ventas.store'), [
+        'medio_pago' => 'efectivo',
+        'productos' => [
+            ['id' => $producto1->id, 'cantidad' => 2],
+            ['id' => $producto2->id, 'cantidad' => 4],
+        ],
+    ]);
+
+    $venta = Venta::first();
+
+    $this->assertDatabaseHas('movimientos_stock', [
+        'producto_id' => $producto1->id,
+        'user_id' => $vendedor->id,
+        'tipo' => MovimientoStock::TIPO_VENTA,
+        'cantidad' => 2,
+        'stock_anterior' => 10,
+        'stock_posterior' => 8,
+        'observacion' => "Venta #{$venta->id}",
+    ]);
+
+    $this->assertDatabaseHas('movimientos_stock', [
+        'producto_id' => $producto2->id,
+        'user_id' => $vendedor->id,
+        'tipo' => MovimientoStock::TIPO_VENTA,
+        'cantidad' => 4,
+        'stock_anterior' => 10,
+        'stock_posterior' => 6,
+        'observacion' => "Venta #{$venta->id}",
+    ]);
+
+    expect(MovimientoStock::where('tipo', MovimientoStock::TIPO_VENTA)->count())->toBe(2);
+});
+
+test('una venta rechazada no deja movimientos de stock registrados', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    Caja::factory()->create(['user_id' => $vendedor->id, 'estado' => 'abierta']);
+
+    $producto = Producto::factory()->create(['precio_venta' => 200, 'precio_costo' => 100, 'stock' => 2, 'activo' => true]);
+
+    $this->actingAs($vendedor)->post(route('ventas.store'), [
+        'medio_pago' => 'efectivo',
+        'productos' => [
+            ['id' => $producto->id, 'cantidad' => 10], // Excede el stock disponible
+        ],
+    ]);
+
+    expect(MovimientoStock::count())->toBe(0)
+        ->and($producto->refresh()->stock)->toBe(2);
+});
+
+test('el historial de stock reconcilia el stock final de cada producto', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    Caja::factory()->create(['user_id' => $vendedor->id, 'estado' => 'abierta']);
+
+    $producto = Producto::factory()->create(['precio_costo' => 100, 'precio_venta' => 200, 'stock' => 20, 'activo' => true]);
+
+    // Carga inicial simulando un ingreso de mercadería
+    $producto->movimientosStock()->create([
+        'user_id' => $admin->id,
+        'tipo' => MovimientoStock::TIPO_INGRESO,
+        'cantidad' => 20,
+        'stock_anterior' => 0,
+        'stock_posterior' => 20,
+        'observacion' => 'Carga inicial',
+    ]);
+
+    // Se venden 3 unidades
+    $this->actingAs($vendedor)->post(route('ventas.store'), [
+        'medio_pago' => 'efectivo',
+        'productos' => [
+            ['id' => $producto->id, 'cantidad' => 3],
+        ],
+    ]);
+
+    // El administrador descarta 2 unidades por rotura
+    $this->actingAs($admin)->post(route('movimientos-stock.descartar.store'), [
+        'producto_id' => $producto->id,
+        'cantidad' => 2,
+        'motivo' => 'Rotura del envase',
+    ]);
+
+    // Stock real: 20 (ingreso) - 3 (venta) - 2 (descarte) = 15
+    expect($producto->refresh()->stock)->toBe(15);
+
+    // La suma de los movimientos registrados reconcilia exactamente con el stock real
+    $movimientos = MovimientoStock::where('producto_id', $producto->id)->orderBy('id')->get();
+
+    expect($movimientos)->toHaveCount(3);
+
+    $sumaMovimientos = $movimientos->sum(function ($movimiento) {
+        return $movimiento->sumaStock() ? $movimiento->cantidad : -$movimiento->cantidad;
+    });
+
+    expect($sumaMovimientos)->toBe(15)
+        ->and($movimientos->last()->stock_posterior)->toBe(15);
+});
+
+test('el listado de ventas filtra por rango de fechas en hora argentina', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $caja = Caja::factory()->create(['user_id' => $admin->id, 'estado' => 'abierta']);
+
+    // Venta dentro del rango (05/10/2026 en hora argentina)
+    Venta::factory()->create([
+        'user_id' => $admin->id,
+        'caja_id' => $caja->id,
+        'total' => 11111.00,
+        'estado' => 'completada',
+        'created_at' => Carbon::parse('2026-10-05 10:00:00', 'America/Argentina/Buenos_Aires')->setTimezone('UTC'),
+    ]);
+
+    // Venta fuera del rango (20/09/2026 en hora argentina)
+    Venta::factory()->create([
+        'user_id' => $admin->id,
+        'caja_id' => $caja->id,
+        'total' => 22222.00,
+        'estado' => 'completada',
+        'created_at' => Carbon::parse('2026-09-20 10:00:00', 'America/Argentina/Buenos_Aires')->setTimezone('UTC'),
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('ventas.index', [
+        'fecha_desde' => '2026-10-01',
+        'fecha_hasta' => '2026-10-10',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSee('11.111,00');
+    $response->assertDontSee('22.222,00');
+});
+
+test('el listado de ventas filtra por monto mínimo y máximo', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $caja = Caja::factory()->create(['user_id' => $admin->id, 'estado' => 'abierta']);
+
+    Venta::factory()->create(['user_id' => $admin->id, 'caja_id' => $caja->id, 'total' => 500.00, 'estado' => 'completada']);
+    Venta::factory()->create(['user_id' => $admin->id, 'caja_id' => $caja->id, 'total' => 5000.00, 'estado' => 'completada']);
+    Venta::factory()->create(['user_id' => $admin->id, 'caja_id' => $caja->id, 'total' => 90000.00, 'estado' => 'completada']);
+
+    $response = $this->actingAs($admin)->get(route('ventas.index', [
+        'monto_min' => 1000,
+        'monto_max' => 10000,
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertSee('5.000,00');
+    $response->assertDontSee('500,00');
+    $response->assertDontSee('90.000,00');
+});
+
+test('los filtros de ventas se conservan en la paginación', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $caja = Caja::factory()->create(['user_id' => $admin->id, 'estado' => 'abierta']);
+
+    // Más de 15 ventas para forzar la paginación
+    Venta::factory()->count(20)->create([
+        'user_id' => $admin->id,
+        'caja_id' => $caja->id,
+        'total' => 3000.00,
+        'estado' => 'completada',
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('ventas.index', ['monto_min' => 1000]));
+
+    $response->assertStatus(200);
+    // El enlace de la página 2 arrastra el filtro aplicado
+    $response->assertSee('monto_min=1000', false);
+});
+
+test('un vendedor solo puede filtrar y ver sus propias ventas con los filtros aplicados', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    $otro = User::factory()->create();
+    $otro->assignRole('vendedor');
+
+    $cajaPropia = Caja::factory()->create(['user_id' => $vendedor->id, 'estado' => 'abierta']);
+    $cajaAjena = Caja::factory()->create(['user_id' => $otro->id, 'estado' => 'abierta']);
+
+    Venta::factory()->create(['user_id' => $vendedor->id, 'caja_id' => $cajaPropia->id, 'total' => 4321.00, 'estado' => 'completada']);
+    Venta::factory()->create(['user_id' => $otro->id, 'caja_id' => $cajaAjena->id, 'total' => 8765.00, 'estado' => 'completada']);
+
+    $response = $this->actingAs($vendedor)->get(route('ventas.index', ['monto_min' => 1000, 'monto_max' => 10000]));
+
+    $response->assertStatus(200);
+    $response->assertSee('4.321,00');
+    $response->assertDontSee('8.765,00');
 });

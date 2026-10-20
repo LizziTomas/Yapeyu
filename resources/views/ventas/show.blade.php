@@ -9,10 +9,22 @@
                     <h1 class="h4 mb-1 fw-semibold">Detalle de Venta #{{ $venta->id }}</h1>
                     <p class="text-muted small mb-0">Comprobante de operación comercial registrada en {{ configuracion()->nombre_local }}</p>
                 </div>
-                <div class="d-flex gap-2">
-                    <span class="badge bg-success fs-6">
-                        <i class="bi bi-check-circle me-1"></i> Completada
-                    </span>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    @if ($venta->esAnulada())
+                        <span class="badge bg-danger fs-6">
+                            <i class="bi bi-x-circle me-1"></i> Anulada
+                        </span>
+                    @else
+                        <span class="badge bg-success fs-6">
+                            <i class="bi bi-check-circle me-1"></i> Completada
+                        </span>
+                    @endif
+                    @can('anular', $venta)
+                        <button type="button" class="btn btn-outline-danger btn-sm"
+                                data-bs-toggle="modal" data-bs-target="#modalAnularVenta{{ $venta->id }}">
+                            <i class="bi bi-x-circle me-1"></i> Anular Venta
+                        </button>
+                    @endcan
                     @can('crear ventas')
                         <a href="{{ route('ventas.create') }}" class="btn btn-primary btn-sm">
                             <i class="bi bi-cart-plus me-1"></i> Nueva Venta
@@ -20,6 +32,25 @@
                     @endcan
                 </div>
             </div>
+
+            {{-- Bloque de auditoría de anulación --}}
+            @if ($venta->esAnulada())
+                <div class="alert alert-danger d-flex gap-3 align-items-start mb-4" role="alert">
+                    <i class="bi bi-x-octagon-fill fs-4"></i>
+                    <div>
+                        <h2 class="h6 fw-semibold mb-2">Venta anulada</h2>
+                        <p class="mb-1 small">
+                            Anulada el
+                            <strong>{{ $venta->anulada_at?->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y') ?? '-' }}</strong>
+                            a las <strong>{{ $venta->anulada_at?->format('H:i') ?? '-' }} hs</strong>
+                            por <strong>{{ $venta->anuladaPor->name ?? 'Usuario Eliminado' }}</strong>.
+                        </p>
+                        <p class="mb-0 small">
+                            <span class="fw-semibold">Motivo:</span> {{ $venta->motivo_anulacion ?: 'No especificado' }}
+                        </p>
+                    </div>
+                </div>
+            @endif
 
             {{-- Ficha de Cabecera de la Venta --}}
             <div class="card border-0 shadow-sm mb-4">
@@ -35,8 +66,8 @@
                         </div>
                         <div class="col-sm-6 col-md-3">
                             <span class="text-muted small d-block mb-1">Fecha y Hora</span>
-                            <span class="fw-medium">{{ $venta->created_at->format('d/m/Y') }}</span>
-                            <small class="text-muted d-block">{{ $venta->created_at->format('H:i') }} hs</small>
+                            <span class="fw-medium">{{ $venta->created_at->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y') }}</span>
+                            <small class="text-muted d-block">{{ $venta->created_at->setTimezone('America/Argentina/Buenos_Aires')->format('H:i') }} hs</small>
                         </div>
                         <div class="col-sm-6 col-md-3">
                             <span class="text-muted small d-block mb-1">Caja Asociada</span>
@@ -114,4 +145,6 @@
             </div>
         </div>
     </div>
+
+    @include('ventas.partials.modal-anular', ['venta' => $venta])
 </x-app-layout>

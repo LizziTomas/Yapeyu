@@ -16,17 +16,6 @@
                 </div>
             </div>
 
-            @if ($errors->any())
-                <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
-                    <ul class="mb-0 ps-3">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                    <button type="button" class="btn-close py-2 px-3" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                </div>
-            @endif
-
             <form method="POST" action="{{ route('ventas.store') }}" id="formVenta">
                 @csrf
 
@@ -37,10 +26,29 @@
                             <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                                 <h2 class="h6 mb-0 fw-semibold text-secondary">Renglones de la Venta</h2>
                                 <button type="button" class="btn btn-outline-primary btn-sm" id="btnAgregarProducto">
-                                    <i class="bi bi-plus-circle me-1"></i> Agregar Producto
+                                    <i class="bi bi-plus-circle me-1"></i> Agregar Renglón
                                 </button>
                             </div>
                             <div class="card-body p-3 p-md-4">
+                                {{-- Buscador: filtra las opciones de los selectores al escribir --}}
+                                <div class="mb-3">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                        <input type="text"
+                                               id="buscadorProductos"
+                                               class="form-control"
+                                               placeholder="Buscar producto por nombre..."
+                                               autocomplete="off"
+                                               autofocus>
+                                        <button type="button" class="btn btn-outline-secondary" id="btnLimpiarBusquedaProductos" title="Limpiar búsqueda">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text" id="ayudaBuscadorProductos">
+                                        Escribí para acotar la lista de cada selector. Los productos con stock 0 no se muestran.
+                                    </div>
+                                </div>
+
                                 <div class="table-responsive">
                                     <table class="table align-middle mb-0" id="tablaProductos">
                                         <thead class="table-light">
@@ -59,8 +67,8 @@
                                                     <select name="productos[0][id]" class="form-select form-select-sm select-producto" required>
                                                         <option value="" disabled selected>-- Seleccionar Producto --</option>
                                                         @foreach ($productos as $prod)
-                                                            <option value="{{ $prod->id }}" 
-                                                                    data-precio="{{ (float) $prod->precio_venta }}" 
+                                                            <option value="{{ $prod->id }}"
+                                                                    data-precio="{{ (float) $prod->precio_venta }}"
                                                                     data-stock="{{ $prod->stock }}">
                                                                 {{ $prod->nombre }} (Stock: {{ $prod->stock }}) - $ {{ monto($prod->precio_venta) }}
                                                             </option>
@@ -68,11 +76,11 @@
                                                     </select>
                                                 </td>
                                                 <td>
-                                                    <input type="number" 
-                                                           name="productos[0][cantidad]" 
-                                                           class="form-control form-control-sm input-cantidad" 
-                                                           min="1" 
-                                                           value="1" 
+                                                    <input type="number"
+                                                           name="productos[0][cantidad]"
+                                                           class="form-control form-control-sm input-cantidad"
+                                                           min="1"
+                                                           value="1"
                                                            required>
                                                 </td>
                                                 <td class="text-end fw-medium texto-precio">$ {{ monto(0) }}</td>
@@ -139,41 +147,80 @@
         </div>
     </div>
 
-    {{-- Script para agregar/eliminar renglones y actualizar totales en tiempo real --}}
+    {{-- Script: buscador que filtra opciones, alta/baja de renglones y totales en tiempo real --}}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             let contadorFilas = 1;
+
             const contenedorFilas = document.getElementById('filasProductos');
             const btnAgregar = document.getElementById('btnAgregarProducto');
             const elementoTotal = document.getElementById('totalVenta');
+            const buscador = document.getElementById('buscadorProductos');
+            const btnLimpiarBusqueda = document.getElementById('btnLimpiarBusquedaProductos');
+            const ayuda = document.getElementById('ayudaBuscadorProductos');
 
-            // Template de opciones de productos
+            // Plantilla de opciones usada al crear un renglón nuevo
             const opcionesProductosHtml = `
                 <option value="" disabled selected>-- Seleccionar Producto --</option>
                 @foreach ($productos as $prod)
-                    <option value="{{ $prod->id }}" 
-                            data-precio="{{ (float) $prod->precio_venta }}" 
+                    <option value="{{ $prod->id }}"
+                            data-precio="{{ (float) $prod->precio_venta }}"
                             data-stock="{{ $prod->stock }}">
                         {{ $prod->nombre }} (Stock: {{ $prod->stock }}) - $ {{ monto($prod->precio_venta) }}
                     </option>
                 @endforeach
             `;
 
-            function formatearMoneda(monto) {
-                return '$ ' + monto.toLocaleString('es-AR', { minimumFractionDigits: {{ configuracion()->decimales() }}, maximumFractionDigits: {{ configuracion()->decimales() }} });
+            const textoAyudaBase = 'Escribí para acotar la lista de cada selector. Los productos con stock 0 no se muestran.';
+
+            function formatearMoneda(valor) {
+                return '$ ' + valor.toLocaleString('es-AR', { minimumFractionDigits: {{ configuracion()->decimales() }}, maximumFractionDigits: {{ configuracion()->decimales() }} });
+            }
+
+            /**
+             * Filtra las opciones de todos los selectores de producto según el texto buscado.
+             * La opción de encabezado y la opción ya elegida siempre se mantienen visibles.
+             * Se usa `hidden` para que cerrar y abrir el select no muestre las descartadas.
+             */
+            function filtrarOpciones() {
+                const termino = (buscador.value || '').trim().toLowerCase();
+                let algunaCoincidencia = false;
+
+                contenedorFilas.querySelectorAll('.select-producto').forEach(function (select) {
+                    const valorSeleccionado = select.value;
+
+                    Array.from(select.options).forEach(function (opcion) {
+                        if (opcion.value === '') {
+                            opcion.hidden = false;
+                            return;
+                        }
+
+                        const coincide = termino === '' || opcion.textContent.toLowerCase().includes(termino);
+                        opcion.hidden = ! coincide && opcion.value !== valorSeleccionado;
+
+                        if (coincide) {
+                            algunaCoincidencia = true;
+                        }
+                    });
+                });
+
+                if (termino === '') {
+                    ayuda.textContent = textoAyudaBase;
+                } else if (! algunaCoincidencia) {
+                    ayuda.innerHTML = '<span class="text-danger">No se encontraron productos que coincidan con la búsqueda.</span>';
+                } else {
+                    ayuda.textContent = 'Lista filtrada. Abrí cualquier selector para elegir el producto.';
+                }
             }
 
             function recalcularTotales() {
                 let granTotal = 0;
-                const filas = contenedorFilas.querySelectorAll('.fila-producto');
 
-                filas.forEach(fila => {
+                contenedorFilas.querySelectorAll('.fila-producto').forEach(function (fila) {
                     const select = fila.querySelector('.select-producto');
                     const inputCantidad = fila.querySelector('.input-cantidad');
-                    const textoPrecio = fila.querySelector('.texto-precio');
-                    const textoSubtotal = fila.querySelector('.texto-subtotal');
-
                     const opcionSeleccionada = select.selectedOptions[0];
+
                     if (opcionSeleccionada && opcionSeleccionada.value) {
                         const precio = parseFloat(opcionSeleccionada.dataset.precio || 0);
                         const stock = parseInt(opcionSeleccionada.dataset.stock || 0);
@@ -185,20 +232,21 @@
                         }
 
                         inputCantidad.max = stock;
+
                         const subtotal = Math.round((precio * cantidad) * 100) / 100;
-                        textoPrecio.textContent = formatearMoneda(precio);
-                        textoSubtotal.textContent = formatearMoneda(subtotal);
+                        fila.querySelector('.texto-precio').textContent = formatearMoneda(precio);
+                        fila.querySelector('.texto-subtotal').textContent = formatearMoneda(subtotal);
                         granTotal += subtotal;
                     } else {
-                        textoPrecio.textContent = '$ {{ monto(0) }}';
-                        textoSubtotal.textContent = '$ {{ monto(0) }}';
+                        fila.querySelector('.texto-precio').textContent = '$ {{ monto(0) }}';
+                        fila.querySelector('.texto-subtotal').textContent = '$ {{ monto(0) }}';
                     }
                 });
 
                 elementoTotal.textContent = formatearMoneda(granTotal);
             }
 
-            // Agregar nueva fila
+            // Agregar un nuevo renglón
             btnAgregar.addEventListener('click', function () {
                 const nuevaFila = document.createElement('tr');
                 nuevaFila.className = 'fila-producto';
@@ -210,11 +258,11 @@
                         </select>
                     </td>
                     <td>
-                        <input type="number" 
-                               name="productos[${contadorFilas}][cantidad]" 
-                               class="form-control form-control-sm input-cantidad" 
-                               min="1" 
-                               value="1" 
+                        <input type="number"
+                               name="productos[${contadorFilas}][cantidad]"
+                               class="form-control form-control-sm input-cantidad"
+                               min="1"
+                               value="1"
                                required>
                     </td>
                     <td class="text-end fw-medium texto-precio">$ {{ monto(0) }}</td>
@@ -225,11 +273,15 @@
                         </button>
                     </td>
                 `;
+
                 contenedorFilas.appendChild(nuevaFila);
                 contadorFilas++;
+
+                // El renglón nuevo respeta el filtro activo del buscador
+                filtrarOpciones();
             });
 
-            // Delegación de eventos para inputs y botones eliminar
+            // Cambios de producto o cantidad
             contenedorFilas.addEventListener('change', function (e) {
                 if (e.target.classList.contains('select-producto') || e.target.classList.contains('input-cantidad')) {
                     recalcularTotales();
@@ -242,16 +294,38 @@
                 }
             });
 
+            // Eliminar renglón (siempre debe quedar al menos uno)
             contenedorFilas.addEventListener('click', function (e) {
                 const btnEliminar = e.target.closest('.btn-eliminar-fila');
-                if (btnEliminar) {
-                    const filas = contenedorFilas.querySelectorAll('.fila-producto');
-                    if (filas.length > 1) {
-                        btnEliminar.closest('.fila-producto').remove();
-                        recalcularTotales();
-                    } else {
-                        alert('Debes mantener al menos un producto en la venta.');
-                    }
+                if (! btnEliminar) {
+                    return;
+                }
+
+                if (contenedorFilas.querySelectorAll('.fila-producto').length > 1) {
+                    btnEliminar.closest('.fila-producto').remove();
+                    recalcularTotales();
+                } else {
+                    alert('Debes mantener al menos un renglón en la venta.');
+                }
+            });
+
+            // --- Buscador ---
+            buscador.addEventListener('input', filtrarOpciones);
+
+            btnLimpiarBusqueda.addEventListener('click', function () {
+                buscador.value = '';
+                filtrarOpciones();
+                buscador.focus();
+            });
+
+            // Atajo de teclado: "/" enfoca el buscador (salvo que ya se esté escribiendo en otro campo)
+            document.addEventListener('keydown', function (e) {
+                const activo = document.activeElement;
+                const escribiendo = activo && (activo.tagName === 'INPUT' || activo.tagName === 'SELECT' || activo.tagName === 'TEXTAREA');
+
+                if (e.key === '/' && ! escribiendo) {
+                    e.preventDefault();
+                    buscador.focus();
                 }
             });
 

@@ -32,6 +32,15 @@ class MovimientoStockPolicy
     }
 
     /**
+     * Determina si el usuario puede registrar un descarte de mercadería.
+     * Es una pérdida de dinero, por eso solo el rol admin posee el permiso.
+     */
+    public function descartar(User $user): bool
+    {
+        return $user->can('crear descartes stock');
+    }
+
+    /**
      * Los movimientos de stock son históricos y no pueden modificarse.
      */
     public function update(User $user, MovimientoStock $movimientoStock): bool

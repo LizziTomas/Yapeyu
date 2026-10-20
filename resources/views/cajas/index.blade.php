@@ -19,7 +19,7 @@
                     <div class="col-md-8">
                         <div class="d-flex align-items-center mb-2">
                             <span class="badge bg-success me-2">Caja Abierta</span>
-                            <span class="text-muted small">Iniciada el {{ $cajaAbierta->fecha_apertura->format('d/m/Y \a \l\a\s H:i') }} hs</span>
+                            <span class="text-muted small">Iniciada el {{ $cajaAbierta->fecha_apertura->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y \a \l\a\s H:i') }} hs</span>
                         </div>
                         <div class="row g-3 mt-1">
                             <div class="col-sm-6 col-lg-3">
@@ -123,13 +123,13 @@
                                 </td>
                             @endif
                             <td>
-                                <div>{{ $caja->fecha_apertura->format('d/m/Y') }}</div>
-                                <small class="text-muted">{{ $caja->fecha_apertura->format('H:i') }} hs</small>
+                                <div>{{ $caja->fecha_apertura->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y') }}</div>
+                                <small class="text-muted">{{ $caja->fecha_apertura->setTimezone('America/Argentina/Buenos_Aires')->format('H:i') }} hs</small>
                             </td>
                             <td>
                                 @if ($caja->fecha_cierre)
-                                    <div>{{ $caja->fecha_cierre->format('d/m/Y') }}</div>
-                                    <small class="text-muted">{{ $caja->fecha_cierre->format('H:i') }} hs</small>
+                                    <div>{{ $caja->fecha_cierre->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y') }}</div>
+                                    <small class="text-muted">{{ $caja->fecha_cierre->setTimezone('America/Argentina/Buenos_Aires')->format('H:i') }} hs</small>
                                 @else
                                     <span class="text-muted fst-italic">En curso</span>
                                 @endif
@@ -170,9 +170,16 @@
                                 @endif
                             </td>
                             <td class="text-end">
-                                <a href="{{ route('cajas.show', $caja) }}" class="btn btn-outline-primary btn-sm" title="Ver Detalle">
-                                    <i class="bi bi-eye"></i> Detalle
-                                </a>
+                                <div class="d-inline-flex gap-1">
+                                    <a href="{{ route('cajas.show', $caja) }}" class="btn btn-outline-primary btn-sm" title="Ver Detalle">
+                                        <i class="bi bi-eye"></i> Detalle
+                                    </a>
+                                    @if ($caja->estaCerrada())
+                                        <a href="{{ route('cajas.ticket', $caja) }}" class="btn btn-outline-secondary btn-sm" title="Ver ticket de cierre" target="_blank">
+                                            <i class="bi bi-receipt"></i> Ticket
+                                        </a>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
