@@ -260,6 +260,13 @@
                                 <i class="bi bi-speedometer2"></i> Dashboard
                             </a>
                         </li>
+
+                        <li>
+                            <a class="sidebar-link {{ request()->routeIs('chat-ia.*') ? 'active' : '' }}" href="{{ route('chat-ia.index') }}">
+                                <i class="bi bi-chat-dots"></i> Asistente IA
+                            </a>
+                        </li>
+
                         <li>
                             <a class="sidebar-link {{ request()->routeIs('productos.*') ? 'active' : '' }}" href="{{ route('productos.index') }}">
                                 <i class="bi bi-box-seam"></i> Productos
