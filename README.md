@@ -19,6 +19,8 @@ Proyecto académico — Trabajo final de la carrera.
 - Alta, edición, baja y listado de productos (solo administradores gestionan; todos consultan).
 - Control de stock actual, stock mínimo, precio de costo y precio de venta.
 - Estado activo/inactivo y alertas de stock bajo.
+- Un producto recién ingresado queda disponible para la venta aunque su stock todavía no haya
+  sido cargado (ver **ingreso rápido** en Ventas).
 
 ### Movimientos de stock (trazabilidad completa del inventario)
 - **Ingreso** de mercadería (entrada manual de stock).
@@ -26,6 +28,10 @@ Proyecto académico — Trabajo final de la carrera.
 - **Anulación de venta**: estorna el stock y registra el movimiento de devolución.
 - **Descarte**: registra merma/rotura/vencimiento con un motivo (solo administradores).
 - Historial con filtros por producto, usuario y tipo, con detalle de stock anterior/posterior.
+- **Resumen por producto** (vista agrupada): un renglón por producto con su último movimiento,
+  que permite ver **cuándo ingresó** la mercadería y abrir su historial completo.
+- **Stock entre dos fechas**: dentro del historial de un producto se reconstruye el stock
+  al inicio y al final del período elegido, usando los movimientos registrados.
 - **El stock de cada producto se reconcilia exactamente con la suma de sus movimientos.**
 
 ### Caja
@@ -40,6 +46,9 @@ Proyecto académico — Trabajo final de la carrera.
 - Medios de pago: efectivo, transferencia y tarjeta.
 - Comprobante de venta en pantalla.
 - **Anulación de ventas** con motivo y auditoría (quién y cuándo), restaurando el stock.
+- **Ingreso rápido de mercadería que llegó**: al cargar una venta, un usuario autorizado puede
+  dar de alta un producto todavía no cargado (nuevo o existente) y registrar su ingreso de stock
+  en el momento, sin salir de la pantalla de venta.
 - Filtros por estado y por vendedor.
 
 ### Reportes

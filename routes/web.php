@@ -40,6 +40,8 @@ Route::middleware('auth')->group(function () {
     Route::get('ventas', [VentaController::class, 'index'])->name('ventas.index');
     Route::get('ventas/crear', [VentaController::class, 'create'])->name('ventas.create');
     Route::post('ventas', [VentaController::class, 'store'])->name('ventas.store');
+    // Ingreso rápido de mercadería desde la pantalla de venta (permiso acotado)
+    Route::post('ventas/ingreso-rapido', [VentaController::class, 'ingresoRapido'])->name('ventas.ingreso-rapido');
     Route::get('ventas/{venta}', [VentaController::class, 'show'])->name('ventas.show');
     Route::post('ventas/{venta}/anular', [VentaController::class, 'anular'])->name('ventas.anular');
 
@@ -48,6 +50,9 @@ Route::middleware('auth')->group(function () {
     Route::get('movimientos-stock/crear', [MovimientoStockController::class, 'create'])->name('movimientos-stock.create');
     Route::get('movimientos-stock/descartar', [MovimientoStockController::class, 'descartarForm'])->name('movimientos-stock.descartar');
     Route::post('movimientos-stock/descartar', [MovimientoStockController::class, 'descartarStore'])->name('movimientos-stock.descartar.store');
+    // Resumen agrupado por producto y stock entre dos fechas (antes de la ruta comodín)
+    Route::get('movimientos-stock/por-producto', [MovimientoStockController::class, 'porProducto'])->name('movimientos-stock.por-producto');
+    Route::get('movimientos-stock/por-producto/{producto}', [MovimientoStockController::class, 'historialProducto'])->name('movimientos-stock.producto');
     Route::post('movimientos-stock', [MovimientoStockController::class, 'store'])->name('movimientos-stock.store');
     Route::get('movimientos-stock/{movimientoStock}', [MovimientoStockController::class, 'show'])->name('movimientos-stock.show');
 

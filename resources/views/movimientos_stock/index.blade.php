@@ -18,6 +18,20 @@
         </div>
     </div>
 
+    {{-- Vistas hermanas del módulo: listado plano y resumen agrupado por producto --}}
+    <ul class="nav nav-pills gap-1 mb-3">
+        <li class="nav-item">
+            <a class="nav-link active py-1 px-3" href="{{ route('movimientos-stock.index') }}">
+                <i class="bi bi-list-ul me-1"></i> Lista de movimientos
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link py-1 px-3" href="{{ route('movimientos-stock.por-producto') }}">
+                <i class="bi bi-box-seam me-1"></i> Resumen por producto
+            </a>
+        </li>
+    </ul>
+
     <!-- Filtros Simples de Búsqueda -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body p-3">

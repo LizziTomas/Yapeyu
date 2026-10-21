@@ -370,3 +370,139 @@ test('el historial de stock busca por observación y por nombre de producto', fu
     expect($porProducto->viewData('movimientos'))->toHaveCount(1)
         ->and($porProducto->viewData('movimientos')->first()->producto_id)->toBe($producto->id);
 });
+
+test('el resumen por producto agrupa entradas y salidas del período', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $producto = Producto::factory()->create([
+        'nombre' => 'Producto Agrupado',
+        'stock' => 8,
+        'activo' => true,
+    ]);
+
+    Producto::factory()->create([
+        'nombre' => 'Producto Sin Movimientos',
+        'stock' => 50,
+        'activo' => true,
+    ]);
+
+    // 10 unidades ingresaron y 4 se vendieron: stock inicial 2 y final 8
+    MovimientoStock::factory()->create([
+        'producto_id' => $producto->id,
+        'user_id' => $admin->id,
+        'tipo' => MovimientoStock::TIPO_INGRESO,
+        'cantidad' => 10,
+        'stock_anterior' => 2,
+        'stock_posterior' => 12,
+    ]);
+
+    MovimientoStock::factory()->create([
+        'producto_id' => $producto->id,
+        'user_id' => $admin->id,
+        'tipo' => MovimientoStock::TIPO_VENTA,
+        'cantidad' => 4,
+        'stock_anterior' => 12,
+        'stock_posterior' => 8,
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('movimientos-stock.por-producto'));
+
+    $response->assertStatus(200);
+
+    $productos = $response->viewData('productos');
+
+    // Sin búsqueda solo se listan los productos con movimientos
+    expect($productos)->toHaveCount(1);
+
+    $fila = $productos->first();
+
+    expect($fila->id)->toBe($producto->id)
+        ->and($fila->total_movimientos)->toBe(2)
+        ->and($fila->entradas_periodo)->toBe(10)
+        ->and($fila->salidas_periodo)->toBe(4)
+        ->and($fila->stock_inicial_periodo)->toBe(2)
+        ->and($fila->stock_final_periodo)->toBe(8);
+});
+
+test('el resumen por producto calcula el stock entre dos fechas', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $producto = Producto::factory()->create([
+        'nombre' => 'Producto Con Fechas',
+        'stock' => 7,
+        'activo' => true,
+    ]);
+
+    $registrar = function (string $tipo, int $cantidad, int $anterior, int $posterior, string $fecha) use ($producto, $admin) {
+        $movimiento = MovimientoStock::factory()->create([
+            'producto_id' => $producto->id,
+            'user_id' => $admin->id,
+            'tipo' => $tipo,
+            'cantidad' => $cantidad,
+            'stock_anterior' => $anterior,
+            'stock_posterior' => $posterior,
+        ]);
+
+        $movimiento->forceFill(['created_at' => $fecha, 'updated_at' => $fecha])->save();
+    };
+
+    $registrar(MovimientoStock::TIPO_INGRESO, 5, 0, 5, '2026-01-10 12:00:00');
+    $registrar(MovimientoStock::TIPO_INGRESO, 10, 5, 15, '2026-06-15 12:00:00');
+    $registrar(MovimientoStock::TIPO_VENTA, 3, 15, 12, '2026-06-20 12:00:00');
+    $registrar(MovimientoStock::TIPO_VENTA, 5, 12, 7, '2026-07-01 12:00:00');
+
+    $rango = ['fecha_desde' => '2026-06-01', 'fecha_hasta' => '2026-06-30'];
+
+    // Junio: entra 10, sale 3. Arranca en 5 y termina en 12.
+    $response = $this->actingAs($admin)->get(route('movimientos-stock.por-producto', $rango));
+
+    $response->assertStatus(200);
+
+    $fila = $response->viewData('productos')->first();
+
+    expect($fila->entradas_periodo)->toBe(10)
+        ->and($fila->salidas_periodo)->toBe(3)
+        ->and($fila->stock_inicial_periodo)->toBe(5)
+        ->and($fila->stock_final_periodo)->toBe(12)
+        ->and($fila->total_movimientos)->toBe(2);
+
+    // El historial del producto muestra el mismo período
+    $historial = $this->actingAs($admin)->get(route('movimientos-stock.producto', array_merge(['producto' => $producto->id], $rango)));
+
+    $historial->assertStatus(200)
+        ->assertSee('Producto Con Fechas')
+        ->assertSee('Stock al inicio')
+        ->assertSee('Stock al final');
+
+    expect($historial->viewData('entradas'))->toBe(10)
+        ->and($historial->viewData('salidas'))->toBe(3)
+        ->and($historial->viewData('stockInicial'))->toBe(5)
+        ->and($historial->viewData('stockFinal'))->toBe(12)
+        ->and($historial->viewData('movimientos'))->toHaveCount(2);
+});
+
+test('el vendedor puede ver el resumen por producto y el historial del producto', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    $producto = Producto::factory()->create(['nombre' => 'Visible Para Vendedor', 'activo' => true]);
+
+    MovimientoStock::factory()->create([
+        'producto_id' => $producto->id,
+        'user_id' => $vendedor->id,
+        'tipo' => MovimientoStock::TIPO_INGRESO,
+    ]);
+
+    $this->actingAs($vendedor)->get(route('movimientos-stock.por-producto'))->assertStatus(200);
+    $this->actingAs($vendedor)->get(route('movimientos-stock.producto', $producto))->assertStatus(200);
+});
+
+test('un usuario sin permiso no puede ver el resumen por producto ni el historial', function () {
+    $usuario = User::factory()->create();
+    $producto = Producto::factory()->create(['activo' => true]);
+
+    $this->actingAs($usuario)->get(route('movimientos-stock.por-producto'))->assertForbidden();
+    $this->actingAs($usuario)->get(route('movimientos-stock.producto', $producto))->assertForbidden();
+});

@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AnularVentaRequest;
+use App\Http\Requests\RegistrarIngresoRapidoRequest;
 use App\Http\Requests\StoreVentaRequest;
 use App\Models\MovimientoStock;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -120,7 +122,90 @@ class VentaController extends Controller
             ->orderBy('nombre')
             ->get();
 
-        return view('ventas.create', compact('productos', 'caja'));
+        // Lista completa de productos activos (incluye los de stock 0) para el
+        // buscador del ingreso rápido: "llegó mercadería que todavía no está cargada".
+        $productosIngreso = $user->can('ingreso rapido en venta')
+            ? Producto::activos()->orderBy('nombre')->get()
+            : collect();
+
+        return view('ventas.create', compact('productos', 'caja', 'productosIngreso'));
+    }
+
+    /**
+     * Registra el ingreso de la mercadería que llega en el momento y devuelve el
+     * producto listo para agregarlo a la venta en curso.
+     *
+     * Se ejecuta dentro de una transacción: si el producto no existe se crea
+     * (activo y con stock 0) y, en ambos casos, se registra el movimiento de
+     * ingreso histórico. No modifica la lógica transaccional de la venta.
+     */
+    public function ingresoRapido(RegistrarIngresoRapidoRequest $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if (! $user->cajaAbierta()) {
+            throw ValidationException::withMessages([
+                'caja' => 'Debes abrir una caja antes de registrar el ingreso.',
+            ]);
+        }
+
+        $datos = $request->validated();
+
+        $producto = DB::transaction(function () use ($datos, $user) {
+            if ($datos['modo'] === 'nuevo') {
+                $producto = Producto::create([
+                    'nombre' => $datos['nombre'],
+                    'precio_costo' => $datos['precio_costo'],
+                    'precio_venta' => $datos['precio_venta'],
+                    'stock_minimo' => $datos['stock_minimo'],
+                    'stock' => 0,
+                    'activo' => true,
+                ]);
+            } else {
+                $producto = Producto::whereKey($datos['producto_id'])->lockForUpdate()->first();
+
+                if (! $producto) {
+                    throw ValidationException::withMessages([
+                        'producto_id' => 'El producto seleccionado no existe.',
+                    ]);
+                }
+
+                if (! $producto->activo) {
+                    throw ValidationException::withMessages([
+                        'producto_id' => 'No se puede ingresar mercadería para un producto inactivo.',
+                    ]);
+                }
+            }
+
+            $cantidad = (int) $datos['cantidad'];
+            $stockAnterior = (int) $producto->stock;
+            $stockPosterior = $stockAnterior + $cantidad;
+
+            $producto->update(['stock' => $stockPosterior]);
+
+            MovimientoStock::create([
+                'producto_id' => $producto->id,
+                'user_id' => $user->id,
+                'tipo' => MovimientoStock::TIPO_INGRESO,
+                'cantidad' => $cantidad,
+                'stock_anterior' => $stockAnterior,
+                'stock_posterior' => $stockPosterior,
+                'observacion' => ($datos['observacion'] ?? null) ?: 'Ingreso en venta — mercadería que llegó',
+            ]);
+
+            return $producto->refresh();
+        });
+
+        return response()->json([
+            'producto' => [
+                'id' => $producto->id,
+                'nombre' => $producto->nombre,
+                'precio_venta' => (float) $producto->precio_venta,
+                'stock' => (int) $producto->stock,
+            ],
+            'mensaje' => "Ingreso registrado: {$producto->nombre} (stock {$producto->stock}).",
+        ]);
     }
 
     /**

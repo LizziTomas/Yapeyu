@@ -12,6 +12,9 @@ desactivarlos. La desactivación no elimina físicamente el registro.
 Cada producto tiene información como nombre, precio y stock.
 El asistente no puede consultar las cantidades actuales directamente.
 
+Un producto recién ingresado puede quedar disponible para la venta aunque
+todavía no tenga stock cargado, mediante el ingreso rápido (ver Ventas).
+
 ## Cajas
 
 Los usuarios autorizados pueden consultar, abrir y cerrar cajas.
@@ -33,12 +36,24 @@ registra la venta y sus detalles, y descuenta el stock.
 Los vendedores pueden consultar sus propias ventas.
 Los administradores pueden consultar ventas de distintos usuarios.
 
+Si la mercadería acaba de llegar y todavía no está cargada en el sistema,
+un usuario autorizado puede usar el ingreso rápido desde la pantalla de nueva
+venta: el sistema crea el producto si es nuevo, registra su ingreso de stock y
+luego continúa con la venta normal.
+
 ## Movimientos de stock
 
 Los usuarios autorizados pueden registrar ingresos de mercadería.
 
 El sistema actualiza el stock del producto y registra el movimiento,
 incluyendo la cantidad ingresada, el stock anterior y el posterior.
+
+Existe además una vista de resumen por producto, que agrupa los movimientos
+y permite ver en qué momento ingresó cada producto y consultar su historial.
+
+Dentro del historial de un producto se puede consultar el stock entre dos
+fechas: el sistema reconstruye el stock al inicio y al final del período a
+partir de los movimientos registrados.
 
 ## Usuarios y permisos
 

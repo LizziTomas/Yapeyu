@@ -32,6 +32,7 @@ class RoleAndPermissionSeeder extends Seeder
             'ver movimientos stock',
             'crear ingresos stock',
             'crear descartes stock',
+            'ingreso rapido en venta',
             'ver reportes',
         ];
 
@@ -54,6 +55,7 @@ class RoleAndPermissionSeeder extends Seeder
             'crear ventas',
             'anular ventas',
             'ver movimientos stock',
+            'ingreso rapido en venta',
         ]);
     }
 }

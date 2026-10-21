@@ -27,6 +27,8 @@ function urlsDelSistema(User $usuario): array
         route('movimientos-stock.create'),
         route('movimientos-stock.descartar'),
         route('movimientos-stock.show', MovimientoStock::first()),
+        route('movimientos-stock.por-producto'),
+        route('movimientos-stock.producto', Producto::first()),
         route('cajas.index'),
         route('cajas.create'),
         route('cajas.show', Caja::first()),
