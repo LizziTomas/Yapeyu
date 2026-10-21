@@ -1,15 +1,15 @@
-# Casa Yacobone - Documentacion del sistema
+# Casa Yacobone - Documentación del sistema
 
 Este documento describe las funcionalidades que conoce el asistente.
-Las respuestas deben basarse en la informacion de este documento.
+Las respuestas deben basarse en la información de este documento.
 
 ## Productos
 
 El sistema permite consultar productos activos y buscarlos por nombre.
 Los administradores pueden crear productos, editar sus datos y
-desactivarlos. La desactivacion no elimina fisicamente el registro.
+desactivarlos. La desactivación no elimina físicamente el registro.
 
-Cada producto tiene informacion como nombre, precio y stock.
+Cada producto tiene información como nombre, precio y stock.
 El asistente no puede consultar las cantidades actuales directamente.
 
 ## Cajas
@@ -35,25 +35,25 @@ Los administradores pueden consultar ventas de distintos usuarios.
 
 ## Movimientos de stock
 
-Los usuarios autorizados pueden registrar ingresos de mercaderia.
+Los usuarios autorizados pueden registrar ingresos de mercadería.
 
 El sistema actualiza el stock del producto y registra el movimiento,
 incluyendo la cantidad ingresada, el stock anterior y el posterior.
 
 ## Usuarios y permisos
 
-La administracion de usuarios y la configuracion del local estan
+La administración de usuarios y la configuración del local están
 reservadas a los administradores.
 
 Las operaciones disponibles dependen de los permisos del usuario.
 
 ## Uso general del sistema
 
-El asistente puede explicar como utilizar las pantallas y funciones
-documentadas aqui.
+El asistente puede explicar cómo utilizar las pantallas y funciones
+documentadas aquí.
 
 Si una pregunta no se relaciona con estas funcionalidades, el asistente
-debe indicar que su funcion es ayudar con el sistema Casa Yacobone.
+debe indicar que su función es ayudar con el sistema Casa Yacobone.
 
 No debe inventar botones, pantallas, permisos ni procedimientos.
 Tampoco debe afirmar que conoce datos actuales de stock, ventas o cajas.

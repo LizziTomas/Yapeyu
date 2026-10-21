@@ -14,29 +14,32 @@ use Throwable;
 class ChatIAController extends Controller
 {
     private const INSTRUCCIONES = <<<'PROMPT'
-Sos el asistente interno del sistema de gestion de Casa Yacobone.
+Sos el asistente interno del sistema de gestión de Casa Yacobone.
 
-Tu tarea es explicar como utilizar las funcionalidades del sistema.
-Responde siempre en espanol, con explicaciones claras y practicas.
+Tu tarea es explicar cómo utilizar las funcionalidades del sistema.
+Respondé siempre en español, con explicaciones claras y prácticas.
 
-Usa la documentacion incluida en el mensaje del sistema como referencia.
+Usá la documentación incluida en el mensaje del sistema como referencia.
 No inventes pantallas, botones, permisos ni procedimientos.
 
 No respondas consultas generales sobre temas ajenos al sistema.
-Si la pregunta no se relaciona con Casa Yacobone, indica amablemente
-que tu funcion es ayudar con el sistema de gestion.
+Si la pregunta no se relaciona con Casa Yacobone, indicá amablemente
+que tu función es ayudar con el sistema de gestión.
 
 No afirmes tener acceso a datos actuales de stock, ventas, cajas o
-usuarios. En esta version no consultas esos datos en tiempo real.
+usuarios. En esta versión no consultás esos datos en tiempo real.
 
 No afirmes haber realizado operaciones en el sistema.
+
+Respondé de forma concisa: si el tema requiere mucho detalle,
+resumí los pasos principales y ofrecé ampliar la explicación.
 PROMPT;
 
     private const MENSAJE_FUERA_DE_TEMA =
-        'Soy el asistente de Casa Yacobone y estoy disenado para ayudarte '
-        . 'con el sistema de gestion. Puedo orientarte sobre productos, '
+        'Soy el asistente de Casa Yacobone y estoy diseñado para ayudarte '
+        . 'con el sistema de gestión. Puedo orientarte sobre productos, '
         . 'stock, cajas, ventas, movimientos, usuarios y permisos. '
-        . 'Que necesitas hacer dentro del sistema?';
+        . '¿Qué necesitás hacer dentro del sistema?';
 
     public function index(): RedirectResponse
     {
@@ -65,7 +68,7 @@ PROMPT;
 
         if ($mensajeActual['role'] !== 'user') {
             return response()->json([
-                'message' => 'El ultimo mensaje debe ser una consulta del usuario.',
+                'message' => 'El último mensaje debe ser una consulta del usuario.',
             ], 422);
         }
 
@@ -91,7 +94,7 @@ PROMPT;
 
             return response()->json([
                 'message' => 'No se pudo validar el tema de la consulta. '
-                    . 'Verifica que Ollama y el modelo de embeddings esten disponibles.',
+                    . 'Verificá que Ollama y el modelo de embeddings estén disponibles.',
             ], 503);
         }
 
@@ -114,7 +117,7 @@ PROMPT;
         try {
             $respuesta = Http::acceptJson()
                 ->connectTimeout(5)
-                ->timeout(120)
+                ->timeout(180)
                 ->post($url . '/api/chat', [
                     'model' => config('services.ollama.model'),
                     'messages' => $mensajes,
@@ -122,19 +125,19 @@ PROMPT;
                     'think' => false,
                     'keep_alive' => '10m',
                     'options' => [
-                        'num_predict' => 220,
+                        'num_predict' => 380,
                     ],
                 ]);
         } catch (ConnectionException $exception) {
             return response()->json([
                 'message' => 'No se pudo conectar con Ollama. '
-                    . 'Verifica que el servicio este funcionando.',
+                    . 'Verificá que el servicio esté funcionando.',
             ], 503);
         }
 
         if ($respuesta->failed()) {
             return response()->json([
-                'message' => 'Ollama devolvio un error. Verifica el modelo configurado.',
+                'message' => 'Ollama devolvió un error. Verificá el modelo configurado.',
             ], 502);
         }
 
@@ -142,12 +145,22 @@ PROMPT;
 
         if (! is_string($texto) || trim($texto) === '') {
             return response()->json([
-                'message' => 'La IA no devolvio una respuesta valida.',
+                'message' => 'La IA no devolvió una respuesta válida.',
             ], 502);
         }
 
+        $texto = trim($texto);
+
+        // Si el modelo se detuvo por el límite de tokens, avisamos al usuario
+        // en lugar de devolver una respuesta cortada a la mitad.
+        if ($respuesta->json('done_reason') === 'length') {
+            $texto .= "\n\n"
+                . '(La respuesta se cortó por límite de longitud. '
+                . 'Pedime que continúe si necesitás más detalle.)';
+        }
+
         return response()->json([
-            'reply' => trim($texto),
+            'reply' => $texto,
             'in_scope' => true,
         ]);
     }
@@ -280,7 +293,7 @@ PROMPT;
     ): array {
         $respuesta = Http::acceptJson()
             ->connectTimeout(5)
-            ->timeout(60)
+            ->timeout(120)
             ->post($url . '/api/embed', [
                 'model' => config('services.ollama.embedding_model'),
                 'input' => $entrada,

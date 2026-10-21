@@ -48,6 +48,13 @@ Proyecto académico — Trabajo final de la carrera.
 - Contador de ventas anuladas del período (no afectan los totales).
 - **Exportación del detalle a CSV** compatible con Excel (UTF-8, separador `;`, decimales con coma).
 
+### Asistente IA
+- Chat de ayuda integrado como **widget flotante**, accesible desde cualquier pantalla.
+- Responde únicamente sobre el funcionamiento del sistema, tomando como base el documento `resources/ai/casa-yacobone.md`.
+- **Filtro de tema** por similitud semántica: si la consulta no se relaciona con el sistema, el asistente lo indica en lugar de responder.
+- Historial de la conversación guardado en el navegador, por usuario.
+- Requiere [Ollama](https://ollama.com/download) en ejecución (ver instalación).
+
 ### Interfaz
 - **Bootstrap 5** + Bootstrap Icons (vía CDN) con una hoja de estilos propia.
 - **Modo claro / oscuro** con preferencia persistente en el navegador.
@@ -61,6 +68,7 @@ Proyecto académico — Trabajo final de la carrera.
 - **Composer**
 - **SQLite** (por defecto, no requiere servidor de base de datos) o MySQL
 - Extensiones PHP estándar de Laravel (`pdo`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`)
+- **[Ollama](https://ollama.com/download)** (solo para el Asistente IA)
 
 ---
 
@@ -85,7 +93,19 @@ type nul > database/database.sqlite      # Windows
 
 # 5. Ejecutar migraciones y datos iniciales (roles, permisos y admin)
 php artisan migrate --seed
+
+# 6. (Opcional) Asistente IA: instalar Ollama y descargar los modelos
+#    Descargar Ollama desde https://ollama.com/download y luego:
+ollama pull qwen3:1.7b
+ollama pull embeddinggemma:300m
 ```
+
+> **Asistente IA:** el widget flotante necesita Ollama en ejecución. Las variables
+> `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_EMBEDDING_MODEL` y `OLLAMA_SCOPE_THRESHOLD`
+> ya traen valores por defecto en `.env.example`; si cambiás alguna, ejecutá
+> `php artisan config:clear`.
+> Sin Ollama activo, el resto del sistema funciona normalmente y solo el asistente
+> devuelve un error de conexión.
 
 > **Nota:** en el entorno `local`, el `DatabaseSeeder` también carga **datos de demostración**
 > (productos, cajas, ventas de los últimos 60 días, anulaciones y descartes) para poder
@@ -147,6 +167,7 @@ database/
 ├── migrations/         → Esquema de la base de datos
 └── seeders/            → Roles/permisos, admin y datos de demostración
 
+resources/ai/           → Documentación que usa el Asistente IA
 resources/views/        → Vistas Blade (dashboard, productos, cajas, ventas, reportes, stock)
 routes/web.php          → Rutas de la aplicación
 tests/Feature/          → Pruebas de funcionalidad
@@ -164,6 +185,7 @@ tests/Feature/          → Pruebas de funcionalidad
 | Autenticación     | Laravel Breeze                          |
 | Roles y permisos  | Spatie Laravel Permission               |
 | Frontend          | Blade + Bootstrap 5 (CDN)               |
+| Asistente IA      | Ollama (`qwen3:1.7b` + `embeddinggemma:300m`) |
 | Pruebas           | Pest                                    |
 
 ---

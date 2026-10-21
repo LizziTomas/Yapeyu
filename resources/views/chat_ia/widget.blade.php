@@ -36,6 +36,47 @@
         overflow-wrap: anywhere;
     }
 
+    .chat-ia-typing {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        min-height: 1.1rem;
+    }
+
+    .chat-ia-typing span {
+        width: 0.45rem;
+        height: 0.45rem;
+        border-radius: 50%;
+        background: var(--bs-secondary-color);
+        animation: chat-ia-typing 1.1s infinite ease-in-out;
+    }
+
+    .chat-ia-typing span:nth-child(2) {
+        animation-delay: 0.15s;
+    }
+
+    .chat-ia-typing span:nth-child(3) {
+        animation-delay: 0.3s;
+    }
+
+    @keyframes chat-ia-typing {
+        0%, 60%, 100% {
+            transform: translateY(0);
+            opacity: 0.4;
+        }
+        30% {
+            transform: translateY(-4px);
+            opacity: 1;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .chat-ia-typing span {
+            animation: none;
+            opacity: 0.7;
+        }
+    }
+
     @media (max-width: 576px) {
         #chat-ia-panel {
             --bs-offcanvas-width: 100vw;
@@ -220,6 +261,40 @@
         container.scrollTop = container.scrollHeight;
     }
 
+    function mostrarEscribiendo() {
+        const row = document.createElement('div');
+
+        row.className = 'd-flex justify-content-start';
+
+        const bubble = document.createElement('div');
+
+        bubble.className =
+            'chat-ia-message rounded-3 px-3 py-2 border bg-body-tertiary';
+
+        const dots = document.createElement('span');
+
+        dots.className = 'chat-ia-typing';
+        dots.setAttribute('role', 'status');
+        dots.setAttribute('aria-label', 'El asistente está escribiendo');
+
+        for (let i = 0; i < 3; i++) {
+            dots.appendChild(document.createElement('span'));
+        }
+
+        bubble.appendChild(dots);
+        row.appendChild(bubble);
+        container.appendChild(row);
+        container.scrollTop = container.scrollHeight;
+        container.setAttribute('aria-busy', 'true');
+
+        return row;
+    }
+
+    function ocultarEscribiendo(row) {
+        row.remove();
+        container.removeAttribute('aria-busy');
+    }
+
     function renderHistory() {
         container.replaceChildren();
 
@@ -270,7 +345,9 @@
         input.value = '';
         input.disabled = true;
         sendButton.disabled = true;
-        status.textContent = 'Preparando la respuesta...';
+        status.textContent = 'El asistente está escribiendo...';
+
+        const typing = mostrarEscribiendo();
 
         try {
             const response = await fetch(endpoint, {
@@ -326,6 +403,8 @@
             status.textContent =
                 'Verificá que Ollama esté funcionando.';
         } finally {
+            ocultarEscribiendo(typing);
+
             input.disabled = false;
             sendButton.disabled = false;
             input.focus();
