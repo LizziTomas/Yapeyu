@@ -78,17 +78,107 @@ test('el formulario de nueva venta incluye el buscador de productos', function (
 
     $response->assertStatus(200);
 
-    // El buscador que filtra las opciones está presente
-    $response->assertSee('id="buscadorProductos"', false);
-    $response->assertSee('Buscar producto por nombre');
+    // Cada renglón tiene un buscador que despliega una lista filtrada mientras se escribe
+    $response->assertSee('id="listaSugerencias"', false);
+    $response->assertSee('function abrirLista(campo)', false);
+    $response->assertSee('Taladro Percutor Buscable', false);
 
-    // Cada renglón usa un selector nativo con todas las opciones del producto
-    $response->assertSee('select-producto', false);
-    $response->assertSee('Taladro Percutor Buscable (Stock: 5)', false);
+    // Cada renglón permite cargar un descuento
+    $response->assertSee('productos[__I__][descuento]', false);
+});
 
-    // El filtrado de opciones está implementado en el script
-    $response->assertSee('function filtrarOpciones()', false);
-    $response->assertSee('filtrarOpciones();', false);
+test('el descuento por renglon se aplica al subtotal y al total de la venta', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    Caja::factory()->create(['user_id' => $vendedor->id, 'estado' => 'abierta']);
+
+    $aceite = Producto::factory()->create(['precio_costo' => 4000, 'precio_venta' => 6800, 'stock' => 10, 'activo' => true]);
+    $grasa = Producto::factory()->create(['precio_costo' => 3000, 'precio_venta' => 4900, 'stock' => 10, 'activo' => true]);
+
+    $this->actingAs($vendedor)->post(route('ventas.store'), [
+        'medio_pago' => 'efectivo',
+        'productos' => [
+            ['id' => $aceite->id, 'cantidad' => 2, 'descuento' => 10],
+            ['id' => $grasa->id, 'cantidad' => 1, 'descuento' => 0],
+        ],
+    ])->assertSessionHasNoErrors();
+
+    $venta = Venta::first();
+    $detalleAceite = $venta->detalles->firstWhere('producto_id', $aceite->id);
+
+    // 6800 x 2 = 13600, con 10% de descuento = 12240; más 4900 de la grasa = 17140
+    expect($detalleAceite->descuento_porcentaje)->toBe(10)
+        ->and((float) $detalleAceite->subtotal)->toBe(12240.00)
+        ->and((float) $detalleAceite->precio_unitario)->toBe(6800.00)
+        ->and((float) $venta->total)->toBe(17140.00);
+});
+
+test('un descuento fuera del rango 0 a 100 es rechazado', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    Caja::factory()->create(['user_id' => $vendedor->id, 'estado' => 'abierta']);
+    $producto = Producto::factory()->create(['stock' => 10, 'activo' => true]);
+
+    $this->actingAs($vendedor)->post(route('ventas.store'), [
+        'medio_pago' => 'efectivo',
+        'productos' => [['id' => $producto->id, 'cantidad' => 1, 'descuento' => 150]],
+    ])->assertSessionHasErrors('productos.0.descuento');
+
+    expect(Venta::count())->toBe(0);
+});
+
+test('el mismo producto con distintos descuentos genera renglones separados y controla el stock sumado', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    Caja::factory()->create(['user_id' => $vendedor->id, 'estado' => 'abierta']);
+    $producto = Producto::factory()->create(['precio_venta' => 100, 'stock' => 5, 'activo' => true]);
+
+    // 3 + 3 supera el stock de 5 aunque cada renglón por separado no lo supere
+    $this->actingAs($vendedor)->post(route('ventas.store'), [
+        'medio_pago' => 'efectivo',
+        'productos' => [
+            ['id' => $producto->id, 'cantidad' => 3, 'descuento' => 0],
+            ['id' => $producto->id, 'cantidad' => 3, 'descuento' => 20],
+        ],
+    ])->assertSessionHasErrors('productos');
+
+    expect(Venta::count())->toBe(0);
+
+    // Dentro del stock: se guardan dos renglones, uno con descuento y otro sin
+    $this->actingAs($vendedor)->post(route('ventas.store'), [
+        'medio_pago' => 'efectivo',
+        'productos' => [
+            ['id' => $producto->id, 'cantidad' => 2, 'descuento' => 0],
+            ['id' => $producto->id, 'cantidad' => 3, 'descuento' => 20],
+        ],
+    ])->assertSessionHasNoErrors();
+
+    $venta = Venta::first();
+    expect($venta->detalles)->toHaveCount(2)
+        ->and((float) $venta->total)->toBe(440.00); // 200 + 300 con 20% = 240
+
+    expect($producto->fresh()->stock)->toBe(0);
+});
+
+test('si la venta es rechazada por stock el formulario muestra el aviso', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    Caja::factory()->create(['user_id' => $vendedor->id, 'estado' => 'abierta']);
+    $producto = Producto::factory()->create(['nombre' => 'Cadena 428', 'stock' => 2, 'activo' => true]);
+
+    $this->actingAs($vendedor)
+        ->from(route('ventas.create'))
+        ->followingRedirects()
+        ->post(route('ventas.store'), [
+            'medio_pago' => 'efectivo',
+            'productos' => [['id' => $producto->id, 'cantidad' => 5]],
+        ])
+        ->assertSee('No se pudo registrar la venta')
+        ->assertSee("El producto 'Cadena 428' no tiene stock suficiente");
 });
 
 test('un vendedor sin caja abierta no puede crear una venta', function () {

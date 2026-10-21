@@ -110,6 +110,7 @@
                                 <th scope="col">Producto</th>
                                 <th scope="col" class="text-center" style="width: 120px;">Cantidad</th>
                                 <th scope="col" class="text-end" style="width: 160px;">Precio Unit. Histórico</th>
+                                <th scope="col" class="text-center" style="width: 90px;">Desc.</th>
                                 <th scope="col" class="text-end" style="width: 160px;">Subtotal</th>
                             </tr>
                         </thead>
@@ -126,6 +127,13 @@
                                     <td class="text-end">
                                         $ {{ monto($detalle->precio_unitario) }}
                                     </td>
+                                    <td class="text-center text-muted">
+                                        @if ($detalle->descuento_porcentaje > 0)
+                                            <span class="badge bg-warning-subtle text-warning-emphasis">{{ $detalle->descuento_porcentaje }}%</span>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                     <td class="text-end fw-semibold">
                                         $ {{ monto($detalle->subtotal) }}
                                     </td>
@@ -134,7 +142,7 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="4" class="text-end fw-bold fs-6">Total de la Venta:</td>
+                                <td colspan="5" class="text-end fw-bold fs-6">Total de la Venta:</td>
                                 <td class="text-end fw-bold fs-5 text-primary">
                                     $ {{ monto($venta->total) }}
                                 </td>

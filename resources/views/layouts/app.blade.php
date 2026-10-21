@@ -22,6 +22,7 @@
     <style>
         /* Colores propios del sistema, con su versión para modo oscuro */
         :root {
+            --app-accent: #e0a526;
             --app-bg: #e9edef;
             --app-line: #d9dfe2;
             --app-head-bg: #f7f9fa;
@@ -232,6 +233,9 @@
             text-align: center;
         }
     </style>
+
+    {{-- Estilos propios de cada pantalla --}}
+    @stack('estilos')
 </head>
 <body>
     <div class="d-lg-flex">

@@ -141,14 +141,24 @@ class VentaController extends Controller
         }
 
         $venta = DB::transaction(function () use ($request, $user, $caja) {
-            // 1. Consolidar productos repetidos en el payload
+            // 1. Consolidar el payload:
+            //    - $renglones: un renglón por cada combinación producto + descuento (mismo descuento se suma)
+            //    - $itemsConsolidados: cantidad total pedida de cada producto, para controlar el stock
+            $renglones = [];
             $itemsConsolidados = [];
             foreach ($request->validated('productos') as $item) {
                 $productoId = (int) $item['id'];
                 $cantidad = (int) $item['cantidad'];
+                $descuento = (int) ($item['descuento'] ?? 0);
                 if ($cantidad <= 0) {
                     continue;
                 }
+                $clave = $productoId.'-'.$descuento;
+                $renglones[$clave] = [
+                    'producto_id' => $productoId,
+                    'descuento' => $descuento,
+                    'cantidad' => ($renglones[$clave]['cantidad'] ?? 0) + $cantidad,
+                ];
                 $itemsConsolidados[$productoId] = ($itemsConsolidados[$productoId] ?? 0) + $cantidad;
             }
 
@@ -158,11 +168,12 @@ class VentaController extends Controller
                 ]);
             }
 
+            $productosBloqueados = [];
             $detallesData = [];
             $movimientosPendientes = [];
             $totalVenta = 0.0;
 
-            // 2. Procesar cada producto con bloqueo y verificación estricta de stock y valores
+            // 2. Procesar cada producto con bloqueo y verificación estricta de stock
             foreach ($itemsConsolidados as $productoId => $cantidad) {
                 $producto = Producto::where('id', $productoId)->lockForUpdate()->first();
 
@@ -184,22 +195,9 @@ class VentaController extends Controller
                     ]);
                 }
 
-                // Precios y costos reales obtenidos directamente desde la base de datos
-                $precioUnitario = (float) $producto->precio_venta;
-                $costoUnitario = (float) $producto->precio_costo;
-                $subtotal = round($precioUnitario * $cantidad, 2);
+                $productosBloqueados[$productoId] = $producto;
 
-                $detallesData[] = [
-                    'producto_id' => $producto->id,
-                    'cantidad' => $cantidad,
-                    'precio_unitario' => $precioUnitario,
-                    'costo_unitario' => $costoUnitario,
-                    'subtotal' => $subtotal,
-                ];
-
-                $totalVenta += $subtotal;
-
-                // 3. Descontar stock y guardar los datos para el movimiento histórico
+                // Descontar stock y guardar los datos para el movimiento histórico
                 $stockAnterior = (int) $producto->stock;
                 $stockPosterior = $stockAnterior - $cantidad;
 
@@ -211,6 +209,28 @@ class VentaController extends Controller
                     'stock_anterior' => $stockAnterior,
                     'stock_posterior' => $stockPosterior,
                 ];
+            }
+
+            // 3. Armar los renglones con precios y costos reales de la base y el descuento aplicado.
+            //    El subtotal se redondea según la configuración del local (con o sin centavos).
+            foreach ($renglones as $renglon) {
+                $producto = $productosBloqueados[$renglon['producto_id']];
+                $precioUnitario = (float) $producto->precio_venta;
+                $subtotal = round(
+                    $precioUnitario * $renglon['cantidad'] * (100 - $renglon['descuento']) / 100,
+                    configuracion()->decimales()
+                );
+
+                $detallesData[] = [
+                    'producto_id' => $producto->id,
+                    'cantidad' => $renglon['cantidad'],
+                    'precio_unitario' => $precioUnitario,
+                    'descuento_porcentaje' => $renglon['descuento'],
+                    'costo_unitario' => (float) $producto->precio_costo,
+                    'subtotal' => $subtotal,
+                ];
+
+                $totalVenta += $subtotal;
             }
 
             // 4. Crear registro de venta de cabecera

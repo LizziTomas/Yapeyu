@@ -26,6 +26,7 @@ class StoreVentaRequest extends FormRequest
             'productos' => ['required', 'array', 'min:1'],
             'productos.*.id' => ['required', 'integer', 'exists:productos,id'],
             'productos.*.cantidad' => ['required', 'integer', 'min:1'],
+            'productos.*.descuento' => ['nullable', 'integer', 'min:0', 'max:100'],
         ];
     }
 
@@ -48,6 +49,9 @@ class StoreVentaRequest extends FormRequest
             'productos.*.cantidad.required' => 'La cantidad de cada producto es obligatoria.',
             'productos.*.cantidad.integer' => 'La cantidad debe ser un número entero.',
             'productos.*.cantidad.min' => 'La cantidad mínima a vender de cada producto es 1.',
+            'productos.*.descuento.integer' => 'El descuento debe ser un número entero.',
+            'productos.*.descuento.min' => 'El descuento no puede ser negativo.',
+            'productos.*.descuento.max' => 'El descuento no puede superar el 100%.',
         ];
     }
 }

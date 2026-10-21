@@ -27,6 +27,7 @@ class VentaDetalle extends Model
         'producto_id',
         'cantidad',
         'precio_unitario',
+        'descuento_porcentaje',
         'costo_unitario',
         'subtotal',
     ];
@@ -41,6 +42,7 @@ class VentaDetalle extends Model
         return [
             'cantidad' => 'integer',
             'precio_unitario' => 'decimal:2',
+            'descuento_porcentaje' => 'integer',
             'costo_unitario' => 'decimal:2',
             'subtotal' => 'decimal:2',
         ];
