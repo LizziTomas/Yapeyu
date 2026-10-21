@@ -49,7 +49,7 @@ test('admin sees global sales totals for today and this month from all users', f
     $response->assertSee('2 ventas registradas');
 });
 
-test('vendedor sees only their own sales totals for today and this month', function () {
+test('el vendedor ve un dashboard simplificado con sus accesos rapidos y sin metricas generales', function () {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 
@@ -59,7 +59,7 @@ test('vendedor sees only their own sales totals for today and this month', funct
     $cajaAdmin = Caja::factory()->create(['user_id' => $admin->id, 'estado' => 'abierta']);
     $cajaVendedor = Caja::factory()->create(['user_id' => $vendedor->id, 'estado' => 'abierta']);
 
-    // Venta del admin ($ 10.000)
+    // Venta del admin ($ 10.000) que NO debe filtrarse al panel del vendedor
     Venta::create([
         'caja_id' => $cajaAdmin->id,
         'user_id' => $admin->id,
@@ -82,10 +82,20 @@ test('vendedor sees only their own sales totals for today and this month', funct
     $response = $this->actingAs($vendedor)->get(route('dashboard'));
 
     $response->assertStatus(200);
-    // El vendedor solo ve sus $ 4.000 (1 venta)
-    $response->assertSee('$ 4.000');
-    $response->assertSee('1 venta registrada');
-    $response->assertDontSee('$ 14.000');
+
+    // Accesos rápidos a sus tareas diarias
+    $response->assertSee('Nueva venta');
+    $response->assertSee('Mis ventas');
+    $response->assertSee('Mi caja');
+
+    // Sin gráficos, KPIs, reportes ni datos de otros usuarios
+    $response->assertDontSee('graficoVentasSemana', false);
+    $response->assertDontSee('totalesSemana', false);
+    $response->assertDontSee('Ventas de hoy');
+    $response->assertDontSee('unidades');
+    $response->assertDontSee('$ 10.000');
+    $response->assertDontSee('$ 4.000');
+    $response->assertDontSee('Reportes');
 });
 
 test('breakdown of payment methods for today is calculated accurately', function () {
@@ -204,11 +214,11 @@ test('low stock alert correctly counts and lists products with stock <= stock_mi
 });
 
 test('dashboard displays user open caja with initial amount, cash sales, and physically expected money', function () {
-    $vendedor = User::factory()->create();
-    $vendedor->assignRole('vendedor');
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
 
     $caja = Caja::create([
-        'user_id' => $vendedor->id,
+        'user_id' => $admin->id,
         'fecha_apertura' => now(),
         'monto_inicial' => 15000.00,
         'monto_esperado' => 15000.00,
@@ -218,7 +228,7 @@ test('dashboard displays user open caja with initial amount, cash sales, and phy
     // Venta en efectivo ($ 6.000) -> suma al dinero físico
     Venta::create([
         'caja_id' => $caja->id,
-        'user_id' => $vendedor->id,
+        'user_id' => $admin->id,
         'total' => 6000.00,
         'medio_pago' => 'efectivo',
         'estado' => 'completada',
@@ -227,19 +237,41 @@ test('dashboard displays user open caja with initial amount, cash sales, and phy
     // Venta en transferencia ($ 9.000) -> NO suma al dinero físico
     Venta::create([
         'caja_id' => $caja->id,
-        'user_id' => $vendedor->id,
+        'user_id' => $admin->id,
         'total' => 9000.00,
         'medio_pago' => 'transferencia',
         'estado' => 'completada',
     ]);
 
-    $response = $this->actingAs($vendedor)->get(route('dashboard'));
+    $response = $this->actingAs($admin)->get(route('dashboard'));
 
     $response->assertStatus(200);
     $response->assertSee('Abierta');
     $response->assertSee('$ 15.000'); // Monto inicial
     $response->assertSee('$ 6.000');  // Ventas efectivo
     $response->assertSee('$ 21.000'); // Dinero físico esperado = 15000 + 6000
+});
+
+test('el panel del vendedor no expone los montos de su caja, solo el acceso', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    Caja::create([
+        'user_id' => $vendedor->id,
+        'fecha_apertura' => now(),
+        'monto_inicial' => 15000.00,
+        'monto_esperado' => 21000.00,
+        'estado' => 'abierta',
+    ]);
+
+    $response = $this->actingAs($vendedor)->get(route('dashboard'));
+
+    $response->assertStatus(200);
+    $response->assertSee('Mi caja');
+    $response->assertSee('Abierta');
+    $response->assertDontSee('Dinero físico esperado');
+    $response->assertDontSee('$ 15.000');
+    $response->assertDontSee('$ 21.000');
 });
 
 test('dashboard handles user without open caja gracefully', function () {
@@ -348,7 +380,7 @@ test('el gráfico de la última semana solo suma ventas dentro de los últimos 7
         ->and(max($valores))->toBe(1000.0);
 });
 
-test('un vendedor solo ve sus propias ventas en el gráfico semanal', function () {
+test('el panel del vendedor no incluye graficos ni datos de ventas de otros usuarios', function () {
     $vendedor = User::factory()->create();
     $vendedor->assignRole('vendedor');
 
@@ -381,11 +413,13 @@ test('un vendedor solo ve sus propias ventas en el gráfico semanal', function (
     $response = $this->actingAs($vendedor)->get(route('dashboard'));
     $response->assertStatus(200);
 
-    preg_match('/var totalesSemana = \[([^\]]*)\];/', $response->getContent(), $m);
-    $suma = round(array_sum(array_map('floatval', explode(',', $m[1] ?? ''))), 2);
+    // El panel del vendedor no recibe series para gráficos
+    $response->assertDontSee('var totalesSemana', false);
+    $response->assertDontSee('var etiquetasSemana', false);
 
-    // El vendedor solo ve su venta de 1000, no la del otro vendedor
-    expect($suma)->toBe(1000.0);
+    // Y no expone totales propios ni ajenos
+    $response->assertDontSee('77.777');
+    $response->assertDontSee('$ 1.000');
 });
 
 test('el dashboard muestra la tendencia porcentual contra el día anterior', function () {

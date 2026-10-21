@@ -32,6 +32,7 @@ class RoleAndPermissionSeeder extends Seeder
             'ver movimientos stock',
             'crear ingresos stock',
             'crear descartes stock',
+            'ver reportes',
         ];
 
         foreach ($permisos as $permiso) {

@@ -265,11 +265,13 @@
                             </a>
                         </li>
 
-                        <li>
-                            <a class="sidebar-link {{ request()->routeIs('productos.*') ? 'active' : '' }}" href="{{ route('productos.index') }}">
-                                <i class="bi bi-box-seam"></i> Productos
-                            </a>
-                        </li>
+                        @can('ver productos')
+                            <li>
+                                <a class="sidebar-link {{ request()->routeIs('productos.*') ? 'active' : '' }}" href="{{ route('productos.index') }}">
+                                    <i class="bi bi-box-seam"></i> Productos
+                                </a>
+                            </li>
+                        @endcan
                         @can('ver movimientos stock')
                             <li>
                                 <a class="sidebar-link {{ request()->routeIs('movimientos-stock.*') ? 'active' : '' }}" href="{{ route('movimientos-stock.index') }}">
@@ -290,6 +292,8 @@
                                     <i class="bi bi-receipt"></i> Ventas
                                 </a>
                             </li>
+                        @endcan
+                        @can('ver reportes')
                             <li>
                                 <a class="sidebar-link {{ request()->routeIs('reportes.*') ? 'active' : '' }}" href="{{ route('reportes.ventas') }}">
                                     <i class="bi bi-file-earmark-bar-graph"></i> Reportes

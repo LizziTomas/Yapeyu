@@ -21,6 +21,14 @@ class DashboardController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
+        // El vendedor no accede a métricas generales ni a gráficos: recibe un panel
+        // reducido con accesos rápidos a sus tareas diarias.
+        if (! $user->isAdmin()) {
+            return view('dashboard-vendedor', [
+                'cajaAbierta' => $user->cajaAbierta(),
+            ]);
+        }
+
         // Rango de fechas ajustado a la zona horaria de Argentina
         $zonaHoraria = 'America/Argentina/Buenos_Aires';
         $inicioDia = Carbon::now($zonaHoraria)->startOfDay()->setTimezone('UTC');

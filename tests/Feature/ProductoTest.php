@@ -8,6 +8,12 @@ test('unauthenticated users are redirected to login when accessing productos', f
     $response->assertRedirect(route('login'));
 });
 
+test('un usuario sin el permiso ver productos recibe 403 en el listado', function () {
+    $usuarioSinRol = User::factory()->create();
+
+    $this->actingAs($usuarioSinRol)->get(route('productos.index'))->assertStatus(403);
+});
+
 test('vendedor can view active products list and search', function () {
     $vendedor = User::factory()->create();
     $vendedor->assignRole('vendedor');
@@ -25,8 +31,9 @@ test('vendedor can view active products list and search', function () {
 
     $response->assertStatus(200);
     $response->assertSee('Tornillo Phillips 1/2');
-    $response->assertSee('$ 50,00');
+    // El vendedor ve el precio de venta y el stock, pero no el costo (información administrativa)
     $response->assertSee('$ 80,00');
+    $response->assertDontSee('$ 50,00');
     $response->assertDontSee('Nuevo Producto');
     $response->assertDontSee('Desactivar');
 });
@@ -161,7 +168,7 @@ test('inactive products are excluded from the main listing and search', function
 
 test('inventory totals are computed correctly based only on active products', function () {
     $user = User::factory()->create();
-    $user->assignRole('vendedor');
+    $user->assignRole('admin');
 
     // Limpiar productos previos para prueba de totales exacta
     Producto::query()->delete();
@@ -196,6 +203,39 @@ test('inventory totals are computed correctly based only on active products', fu
     // Totales esperados: 2 productos activos, 15 unidades, $2000 costo, $3000 venta
     $response->assertSee('$ 2.000,00');
     $response->assertSee('$ 3.000,00');
+});
+
+test('el vendedor no ve los totales de inventario ni los costos de los productos', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    Producto::query()->delete();
+
+    Producto::factory()->create([
+        'nombre' => 'Producto Visible',
+        'stock' => 10,
+        'precio_costo' => 100,
+        'precio_venta' => 150,
+        'activo' => true,
+    ]);
+
+    $response = $this->actingAs($vendedor)->get(route('productos.index'));
+
+    $response->assertStatus(200);
+
+    // Datos operativos que sí necesita para vender
+    $response->assertSee('Producto Visible');
+    $response->assertSee('$ 150,00');
+
+    // Información administrativa que debe quedar oculta
+    $response->assertDontSee('Valor Total a Costo');
+    $response->assertDontSee('Valor Potencial Venta');
+    $response->assertDontSee('P. Costo');
+    $response->assertDontSee('Valor a Costo');
+    $response->assertDontSee('Valor Potencial');
+    $response->assertDontSee('$ 100,00');
+    $response->assertDontSee('$ 1.000,00');
+    $response->assertDontSee('$ 1.500,00');
 });
 
 test('validation rejects invalid prices and negative stock minimo', function () {

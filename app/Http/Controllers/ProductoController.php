@@ -7,6 +7,8 @@ use App\Http\Requests\UpdateProductoRequest;
 use App\Models\Producto;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class ProductoController extends Controller
@@ -16,6 +18,8 @@ class ProductoController extends Controller
      */
     public function index(Request $request): View
     {
+        Gate::authorize('viewAny', Producto::class);
+
         $search = $request->input('search');
         $estado = $request->input('estado', 'activos');
 
@@ -36,13 +40,18 @@ class ProductoController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        // Totales de inventario calculados únicamente sobre productos activos
-        $totales = [
-            'total_productos' => Producto::activos()->count(),
-            'total_unidades' => (int) Producto::activos()->sum('stock'),
-            'total_valor_costo' => (float) (Producto::activos()->selectRaw('SUM(stock * precio_costo) as total')->value('total') ?? 0),
-            'total_valor_venta' => (float) (Producto::activos()->selectRaw('SUM(stock * precio_venta) as total')->value('total') ?? 0),
-        ];
+        // Totales de inventario: información administrativa, reservada a los administradores.
+        // El vendedor solo consulta el nombre, el precio y el stock disponible de cada producto.
+        $totales = [];
+
+        if (Auth::user()->isAdmin()) {
+            $totales = [
+                'total_productos' => Producto::activos()->count(),
+                'total_unidades' => (int) Producto::activos()->sum('stock'),
+                'total_valor_costo' => (float) (Producto::activos()->selectRaw('SUM(stock * precio_costo) as total')->value('total') ?? 0),
+                'total_valor_venta' => (float) (Producto::activos()->selectRaw('SUM(stock * precio_venta) as total')->value('total') ?? 0),
+            ];
+        }
 
         return view('productos.index', compact('productos', 'totales', 'search', 'estado'));
     }

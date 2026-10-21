@@ -23,7 +23,7 @@ class ReporteVentaController extends Controller
      */
     public function index(Request $request): View
     {
-        Gate::authorize('viewAny', Venta::class);
+        Gate::authorize('ver reportes');
 
         [
             'fechaDesde' => $fechaDesde,
@@ -141,7 +141,7 @@ class ReporteVentaController extends Controller
      */
     public function exportar(Request $request): StreamedResponse
     {
-        Gate::authorize('viewAny', Venta::class);
+        Gate::authorize('ver reportes');
 
         [
             'fechaDesde' => $fechaDesde,

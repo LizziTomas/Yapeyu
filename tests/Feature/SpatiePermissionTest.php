@@ -25,6 +25,7 @@ test('spatie roles and permissions are properly configured', function () {
         ->and($adminRole->hasPermissionTo('crear ventas'))->toBeTrue()
         ->and($adminRole->hasPermissionTo('ver movimientos stock'))->toBeTrue()
         ->and($adminRole->hasPermissionTo('crear ingresos stock'))->toBeTrue()
+        ->and($adminRole->hasPermissionTo('ver reportes'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('ver productos'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('crear productos'))->toBeFalse()
         ->and($vendedorRole->hasPermissionTo('ver usuarios'))->toBeFalse()
@@ -34,7 +35,8 @@ test('spatie roles and permissions are properly configured', function () {
         ->and($vendedorRole->hasPermissionTo('ver ventas'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('crear ventas'))->toBeTrue()
         ->and($vendedorRole->hasPermissionTo('ver movimientos stock'))->toBeTrue()
-        ->and($vendedorRole->hasPermissionTo('crear ingresos stock'))->toBeFalse();
+        ->and($vendedorRole->hasPermissionTo('crear ingresos stock'))->toBeFalse()
+        ->and($vendedorRole->hasPermissionTo('ver reportes'))->toBeFalse();
 });
 
 test('user with admin role inherits all admin permissions', function () {
@@ -57,7 +59,8 @@ test('user with admin role inherits all admin permissions', function () {
         ->and($admin->can('ver ventas'))->toBeTrue()
         ->and($admin->can('crear ventas'))->toBeTrue()
         ->and($admin->can('ver movimientos stock'))->toBeTrue()
-        ->and($admin->can('crear ingresos stock'))->toBeTrue();
+        ->and($admin->can('crear ingresos stock'))->toBeTrue()
+        ->and($admin->can('ver reportes'))->toBeTrue();
 });
 
 test('user with vendedor role has product viewing, own caja, and stock viewing permissions', function () {
@@ -80,5 +83,6 @@ test('user with vendedor role has product viewing, own caja, and stock viewing p
         ->and($vendedor->can('ver ventas'))->toBeTrue()
         ->and($vendedor->can('crear ventas'))->toBeTrue()
         ->and($vendedor->can('ver movimientos stock'))->toBeTrue()
-        ->and($vendedor->can('crear ingresos stock'))->toBeFalse();
+        ->and($vendedor->can('crear ingresos stock'))->toBeFalse()
+        ->and($vendedor->can('ver reportes'))->toBeFalse();
 });

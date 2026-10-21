@@ -9,7 +9,7 @@ test('1. unauthenticated users are redirected to login when accessing reportes v
     $this->get(route('reportes.ventas'))->assertRedirect(route('login'));
 });
 
-test('1b. users with ver ventas permission (admin and vendedor) can access reportes ventas', function () {
+test('1b. solo el administrador puede acceder a los reportes de ventas', function () {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 
@@ -17,7 +17,10 @@ test('1b. users with ver ventas permission (admin and vendedor) can access repor
     $vendedor->assignRole('vendedor');
 
     $this->actingAs($admin)->get(route('reportes.ventas'))->assertStatus(200);
-    $this->actingAs($vendedor)->get(route('reportes.ventas'))->assertStatus(200);
+
+    // El vendedor tiene "ver ventas" pero NO "ver reportes"
+    $this->actingAs($vendedor)->get(route('reportes.ventas'))->assertStatus(403);
+    $this->actingAs($vendedor)->get(route('reportes.ventas.exportar'))->assertStatus(403);
 });
 
 test('2. report calculates correct sales count and total amount for a given period', function () {
@@ -254,7 +257,7 @@ test('6. admin can filter report by specific vendedor or view all', function () 
     $responseAll->assertSee('2 operaciones registradas');
 });
 
-test('7. vendedor can only see their own sales even if manipulating URL parameters', function () {
+test('7. el vendedor no puede acceder al reporte aunque fuerce parametros por URL', function () {
     $vendedor1 = User::factory()->create(['name' => 'Vendedor Uno']);
     $vendedor1->assignRole('vendedor');
 
@@ -286,19 +289,14 @@ test('7. vendedor can only see their own sales even if manipulating URL paramete
         'created_at' => $fecha,
     ]);
 
-    // Vendedor 1 intenta filtrar explícitamente por Vendedor 2 mediante parámetro user_id
+    // El vendedor no puede entrar al reporte aunque fuerce el parámetro user_id
     $response = $this->actingAs($vendedor1)->get(route('reportes.ventas', [
         'fecha_desde' => '2026-10-01',
         'fecha_hasta' => '2026-10-10',
         'user_id' => $vendedor2->id,
     ]));
 
-    $response->assertStatus(200);
-    // Solo debe ver sus propios $ 5.000
-    $response->assertSee('$ ' . monto(5000));
-    $response->assertSee('1 operación registrada');
-    $response->assertDontSee('$ ' . monto(95000));
-    $response->assertDontSee('Vendedor Dos');
+    $response->assertStatus(403);
 });
 
 test('8. filter by payment method isolates sales for that method', function () {
@@ -510,41 +508,22 @@ test('exporta el detalle de ventas del período en formato CSV para Excel', func
         ->and($contenido)->toContain(monto(30000));
 });
 
-test('la exportación CSV respeta la autorización y no expone ventas de otros vendedores', function () {
+test('la exportación CSV queda reservada al administrador', function () {
     $vendedor = User::factory()->create();
     $vendedor->assignRole('vendedor');
 
-    $otro = User::factory()->create();
-    $otro->assignRole('vendedor');
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
 
-    $cajaPropia = Caja::factory()->create(['user_id' => $vendedor->id]);
-    $cajaAjena = Caja::factory()->create(['user_id' => $otro->id]);
-
-    Venta::forceCreate([
-        'caja_id' => $cajaPropia->id,
-        'user_id' => $vendedor->id,
-        'total' => 12000.00,
-        'medio_pago' => 'efectivo',
-        'estado' => 'completada',
-        'created_at' => Carbon::parse('2026-10-05 14:00:00', 'America/Argentina/Buenos_Aires')->setTimezone('UTC'),
-    ]);
-
-    Venta::forceCreate([
-        'caja_id' => $cajaAjena->id,
-        'user_id' => $otro->id,
-        'total' => 88888.00,
-        'medio_pago' => 'efectivo',
-        'estado' => 'completada',
-        'created_at' => Carbon::parse('2026-10-05 15:00:00', 'America/Argentina/Buenos_Aires')->setTimezone('UTC'),
-    ]);
-
-    $contenido = $this->actingAs($vendedor)->get(route('reportes.ventas.exportar', [
+    $this->actingAs($vendedor)->get(route('reportes.ventas.exportar', [
         'fecha_desde' => '2026-10-01',
         'fecha_hasta' => '2026-10-10',
-    ]))->streamedContent();
+    ]))->assertStatus(403);
 
-    expect($contenido)->toContain(monto(12000))
-        ->and($contenido)->not->toContain(monto(88888));
+    $this->actingAs($admin)->get(route('reportes.ventas.exportar', [
+        'fecha_desde' => '2026-10-01',
+        'fecha_hasta' => '2026-10-10',
+    ]))->assertStatus(200);
 });
 
 test('displays empty state when no completed sales match the filters', function () {

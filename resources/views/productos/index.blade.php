@@ -20,6 +20,7 @@
         </div>
     </div>
 
+    @if (Auth::user()->isAdmin())
     <!-- Resumen de Totales del Inventario -->
     <div class="row g-2 mb-3">
         <div class="col-6 col-md-3">
@@ -55,6 +56,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Buscador de Productos -->
     <div class="card border-0 shadow-sm mb-3">
@@ -97,12 +99,16 @@
             <thead class="table-light">
                 <tr>
                     <th scope="col" class="ps-3">Nombre</th>
-                    <th scope="col" class="text-end" style="width: 120px;">P. Costo</th>
+                    @if (Auth::user()->isAdmin())
+                        <th scope="col" class="text-end" style="width: 120px;">P. Costo</th>
+                    @endif
                     <th scope="col" class="text-end" style="width: 120px;">P. Venta</th>
                     <th scope="col" class="text-center" style="width: 100px;">Stock</th>
                     <th scope="col" class="text-center" style="width: 100px;">Stock Mín.</th>
-                    <th scope="col" class="text-end" style="width: 130px;">Valor a Costo</th>
-                    <th scope="col" class="text-end" style="width: 130px;">Valor Potencial</th>
+                    @if (Auth::user()->isAdmin())
+                        <th scope="col" class="text-end" style="width: 130px;">Valor a Costo</th>
+                        <th scope="col" class="text-end" style="width: 130px;">Valor Potencial</th>
+                    @endif
                     @if (Auth::user()->hasRole('admin'))
                         <th scope="col" class="text-end pe-3" style="width: 150px;">Acciones</th>
                     @endif
@@ -117,7 +123,9 @@
                                 <span class="badge bg-warning text-dark ms-1 small" title="Stock en nivel mínimo o inferior">Stock bajo</span>
                             @endif
                         </td>
-                        <td class="text-end text-muted">$ {{ monto($producto->precio_costo) }}</td>
+                        @if (Auth::user()->isAdmin())
+                            <td class="text-end text-muted">$ {{ monto($producto->precio_costo) }}</td>
+                        @endif
                         <td class="text-end fw-medium">$ {{ monto($producto->precio_venta) }}</td>
                         <td class="text-center">
                             <span class="fw-semibold {{ $producto->isStockBajo() ? 'text-danger' : 'text-dark' }}">
@@ -125,8 +133,10 @@
                             </span>
                         </td>
                         <td class="text-center text-muted">{{ $producto->stock_minimo }}</td>
-                        <td class="text-end text-muted small">$ {{ monto($producto->valor_stock_costo) }}</td>
-                        <td class="text-end text-success small fw-medium">$ {{ monto($producto->valor_potencial_venta) }}</td>
+                        @if (Auth::user()->isAdmin())
+                            <td class="text-end text-muted small">$ {{ monto($producto->valor_stock_costo) }}</td>
+                            <td class="text-end text-success small fw-medium">$ {{ monto($producto->valor_potencial_venta) }}</td>
+                        @endif
                         @if (Auth::user()->hasRole('admin'))
                             <td class="text-end pe-3">
                                 <div class="btn-group btn-group-sm" role="group">
@@ -153,7 +163,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ Auth::user()->hasRole('admin') ? 8 : 7 }}" class="text-center text-muted py-4">
+                        <td colspan="{{ Auth::user()->hasRole('admin') ? 8 : 4 }}" class="text-center text-muted py-4">
                             <i class="bi bi-box-seam fs-4 d-block mb-1"></i>
                             No se encontraron productos con los filtros seleccionados.
                         </td>
