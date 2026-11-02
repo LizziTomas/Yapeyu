@@ -201,14 +201,21 @@
                         @else
                             <div class="text-center py-3">
                                 <span class="icon-tile mb-3" style="width: 3rem; height: 3rem"><i class="bi bi-safe fs-5"></i></span>
-                                <p class="text-body-secondary small mb-3">
-                                    No tienes ninguna caja abierta en este momento. Abre una nueva caja para comenzar a registrar ventas.
-                                </p>
-                                @can('abrir cajas')
-                                    <a href="{{ route('cajas.create') }}" class="btn btn-primary btn-sm">
-                                        <i class="bi bi-plus-circle me-1"></i> Abrir Caja
-                                    </a>
-                                @endcan
+                                @if ($cajasAbiertasNegocio->isEmpty())
+                                    <p class="text-body-secondary small mb-3">
+                                        No tienes ninguna caja abierta en este momento. Abre una nueva caja para comenzar a registrar ventas.
+                                    </p>
+                                    @can('abrir cajas')
+                                        <a href="{{ route('cajas.create') }}" class="btn btn-primary btn-sm">
+                                            <i class="bi bi-plus-circle me-1"></i> Abrir Caja
+                                        </a>
+                                    @endcan
+                                @else
+                                    {{-- Solo puede haber una caja abierta a la vez en todo el negocio --}}
+                                    <p class="text-body-secondary small mb-0">
+                                        Ya hay una caja abierta en el negocio. No se puede abrir otra hasta que se cierre.
+                                    </p>
+                                @endif
                             </div>
                         @endif
 

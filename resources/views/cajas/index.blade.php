@@ -4,12 +4,24 @@
             <h1 class="h4 mb-1 fw-semibold">Gestión de Cajas</h1>
             <p class="text-muted small mb-0">Control de apertura, arqueo y cierre de sesiones de caja</p>
         </div>
-        @if (!$cajaAbierta && Auth::user()->can('abrir cajas'))
+        @if (!$cajaAbierta && !$cajaDeOtro && Auth::user()->can('abrir cajas'))
             <a href="{{ route('cajas.create') }}" class="btn btn-primary btn-sm">
                 <i class="bi bi-cash-stack me-1"></i> Abrir Nueva Caja
             </a>
         @endif
     </div>
+
+    {{-- Solo puede haber una caja abierta a la vez en todo el negocio --}}
+    @if (!$cajaAbierta && $cajaDeOtro)
+        <div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span class="small">
+                {{ $cajaDeOtro->user->name }} tiene una caja abierta desde el
+                {{ $cajaDeOtro->fecha_apertura->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y \a \l\a\s H:i') }} hs.
+                No se puede abrir otra hasta que se cierre.
+            </span>
+        </div>
+    @endif
 
     {{-- Estado de la caja actual del usuario autenticado --}}
     @if ($cajaAbierta)

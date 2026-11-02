@@ -37,6 +37,7 @@ Proyecto académico — Trabajo final de la carrera.
 
 ### Caja
 - Apertura y cierre de caja por turno, con monto inicial en efectivo.
+- **Una sola caja abierta a la vez en todo el negocio**: nadie puede abrir otra hasta que se cierre.
 - Arqueo: cálculo del **dinero físico esperado** (monto inicial + ventas en efectivo).
 - Registro del monto real contado y cálculo automático de la **diferencia** (sobrante/faltante).
 - Cierre congelado del arqueo: si una venta se anula luego del cierre, la caja se recalcula.

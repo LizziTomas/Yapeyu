@@ -18,7 +18,8 @@ todavía no tenga stock cargado, mediante el ingreso rápido (ver Ventas).
 ## Cajas
 
 Los usuarios autorizados pueden consultar, abrir y cerrar cajas.
-No se puede abrir otra caja si el usuario ya tiene una abierta.
+Solo puede haber una caja abierta a la vez en todo el negocio: nadie puede
+abrir otra hasta que quien la abrió la cierre.
 
 Al cerrar una caja, se registra el monto real y el sistema calcula
 el monto esperado y la diferencia.

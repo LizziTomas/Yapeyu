@@ -2,6 +2,7 @@
 
 use App\Models\Caja;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 
 test('usuarios no autenticados son redirigidos al login al acceder a rutas de caja', function () {
     $caja = Caja::factory()->create();
@@ -61,6 +62,64 @@ test('un vendedor no puede abrir una segunda caja si ya tiene una abierta', func
 
     // Comprobar que solo existe una caja para este usuario
     expect(Caja::where('user_id', $vendedor->id)->count())->toBe(1);
+});
+
+test('solo puede haber una caja abierta en todo el negocio hasta que se cierre', function () {
+    $lucia = User::factory()->create(['name' => 'Lucía Fernández']);
+    $lucia->assignRole('vendedor');
+    $martin = User::factory()->create();
+    $martin->assignRole('vendedor');
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $this->actingAs($lucia)->post(route('cajas.store'), ['monto_inicial' => 1000]);
+    $caja = Caja::where('user_id', $lucia->id)->sole();
+
+    // Nadie más puede abrir: ni entrando al formulario ni enviándolo, y sea vendedor o administrador
+    foreach ([$martin, $admin] as $otro) {
+        $this->actingAs($otro)->get(route('cajas.create'))
+            ->assertRedirect(route('cajas.index'))
+            ->assertSessionHas('error', 'Ya hay una caja abierta por Lucía Fernández. No se puede abrir otra hasta que se cierre.');
+
+        $this->actingAs($otro)->post(route('cajas.store'), ['monto_inicial' => 500])
+            ->assertRedirect(route('cajas.index'))
+            ->assertSessionHas('error');
+    }
+
+    expect(Caja::count())->toBe(1);
+
+    // Las pantallas ya no ofrecen abrir y avisan quién tiene la caja
+    $this->actingAs($martin)->get(route('cajas.index'))
+        ->assertSee('Lucía Fernández tiene una caja abierta')
+        ->assertDontSee('Abrir Nueva Caja');
+    $this->actingAs($martin)->get(route('dashboard'))
+        ->assertSee('Lucía Fernández tiene una caja abierta')
+        ->assertDontSee('Abrir Caja');
+    $this->actingAs($admin)->get(route('dashboard'))
+        ->assertSee('Lucía Fernández')
+        ->assertDontSee('Abrir Caja');
+
+    // Al cerrarla, otra persona ya puede abrir la suya
+    $this->actingAs($lucia)->post(route('cajas.cerrar', $caja), ['monto_real' => 1000]);
+
+    $this->actingAs($martin)->get(route('cajas.index'))->assertSee('Abrir Nueva Caja');
+    $this->actingAs($martin)->post(route('cajas.store'), ['monto_inicial' => 500])->assertSessionHas('success');
+
+    expect(Caja::abiertas()->sole()->user_id)->toBe($martin->id);
+});
+
+test('no se abre una caja mientras otra apertura está en curso', function () {
+    $vendedor = User::factory()->create();
+    $vendedor->assignRole('vendedor');
+
+    // Simula a otra persona que está abriendo una caja en este mismo instante
+    Cache::lock('abrir-caja', 10)->get();
+
+    $this->actingAs($vendedor)->post(route('cajas.store'), ['monto_inicial' => 500])
+        ->assertRedirect(route('cajas.index'))
+        ->assertSessionHas('error');
+
+    expect(Caja::count())->toBe(0);
 });
 
 test('un vendedor puede ver los detalles de su propia caja', function () {

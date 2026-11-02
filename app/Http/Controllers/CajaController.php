@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -50,7 +51,9 @@ class CajaController extends Controller
             $usuarios = collect();
         }
 
-        return view('cajas.index', compact('cajas', 'cajaAbierta', 'usuarios'));
+        $cajaDeOtro = $user->cajaAbiertaDeOtro();
+
+        return view('cajas.index', compact('cajas', 'cajaAbierta', 'cajaDeOtro', 'usuarios'));
     }
 
     /**
@@ -60,12 +63,8 @@ class CajaController extends Controller
     {
         Gate::authorize('create', Caja::class);
 
-        /** @var User $user */
-        $user = Auth::user();
-
-        if ($user->cajaAbierta()) {
-            return redirect()->route('cajas.index')
-                ->with('error', 'Ya tienes una caja abierta actualmente.');
+        if (Caja::abiertas()->exists()) {
+            return $this->rechazarApertura(Auth::user());
         }
 
         return view('cajas.create');
@@ -73,6 +72,7 @@ class CajaController extends Controller
 
     /**
      * Almacena una nueva caja abierta en la base de datos.
+     * Solo puede haber una caja abierta a la vez en todo el negocio.
      */
     public function store(StoreCajaRequest $request): RedirectResponse
     {
@@ -80,24 +80,42 @@ class CajaController extends Controller
 
         /** @var User $user */
         $user = Auth::user();
-
-        if ($user->cajaAbierta()) {
-            return redirect()->route('cajas.index')
-                ->with('error', 'Ya tienes una caja abierta. No puedes abrir otra caja.');
-        }
-
         $montoInicial = $request->validated('monto_inicial');
 
-        $caja = Caja::create([
-            'user_id' => $user->id,
-            'fecha_apertura' => now(),
-            'monto_inicial' => $montoInicial,
-            'monto_esperado' => $montoInicial,
-            'estado' => 'abierta',
-        ]);
+        // El bloqueo evita que dos personas abran una caja en el mismo instante.
+        // Devuelve false si otra apertura está en curso, y null si ya hay una caja abierta.
+        $caja = Cache::lock('abrir-caja', 10)->get(function () use ($user, $montoInicial) {
+            if (Caja::abiertas()->exists()) {
+                return null;
+            }
+
+            return Caja::create([
+                'user_id' => $user->id,
+                'fecha_apertura' => now(),
+                'monto_inicial' => $montoInicial,
+                'monto_esperado' => $montoInicial,
+                'estado' => 'abierta',
+            ]);
+        });
+
+        if (! $caja) {
+            return $this->rechazarApertura($user);
+        }
 
         return redirect()->route('cajas.show', $caja)
             ->with('success', 'Caja abierta exitosamente.');
+    }
+
+    /**
+     * Vuelve al listado de cajas explicando por qué no se puede abrir otra.
+     */
+    private function rechazarApertura(User $user): RedirectResponse
+    {
+        $mensaje = $user->cajaAbierta()
+            ? 'Ya tienes una caja abierta. Ciérrala antes de abrir otra.'
+            : 'Ya hay una caja abierta por '.($user->cajaAbiertaDeOtro()?->user->name ?? 'otra persona').'. No se puede abrir otra hasta que se cierre.';
+
+        return redirect()->route('cajas.index')->with('error', $mensaje);
     }
 
     /**

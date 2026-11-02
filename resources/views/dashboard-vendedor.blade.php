@@ -13,7 +13,13 @@
     @if (! $cajaAbierta)
         <div class="alert alert-warning d-flex align-items-center gap-2 py-2" role="alert">
             <i class="bi bi-exclamation-triangle"></i>
-            <span class="small mb-0">No tenés una caja abierta. Abrila para poder registrar ventas.</span>
+            <span class="small mb-0">
+                @if ($cajaDeOtro)
+                    {{ $cajaDeOtro->user->name }} tiene una caja abierta. No se puede abrir otra hasta que se cierre.
+                @else
+                    No tenés una caja abierta. Abrila para poder registrar ventas.
+                @endif
+            </span>
         </div>
     @endif
 
@@ -69,6 +75,8 @@
                         @if ($cajaAbierta)
                             Tu caja está abierta desde las
                             {{ $cajaAbierta->fecha_apertura->setTimezone('America/Argentina/Buenos_Aires')->format('H:i') }} hs.
+                        @elseif ($cajaDeOtro)
+                            Vas a poder abrir tu caja cuando {{ $cajaDeOtro->user->name }} cierre la suya.
                         @else
                             Abrí tu caja para comenzar a registrar ventas del día.
                         @endif
@@ -77,7 +85,7 @@
                         <a href="{{ route('cajas.show', $cajaAbierta) }}" class="btn btn-outline-primary btn-sm">
                             <i class="bi bi-eye me-1"></i> Ver mi caja
                         </a>
-                    @else
+                    @elseif (! $cajaDeOtro)
                         <a href="{{ route('cajas.create') }}" class="btn btn-success btn-sm">
                             <i class="bi bi-plus-circle me-1"></i> Abrir Caja
                         </a>

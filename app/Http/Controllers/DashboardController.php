@@ -26,6 +26,7 @@ class DashboardController extends Controller
         if (! $user->isAdmin()) {
             return view('dashboard-vendedor', [
                 'cajaAbierta' => $user->cajaAbierta(),
+                'cajaDeOtro' => $user->cajaAbiertaDeOtro(),
             ]);
         }
 

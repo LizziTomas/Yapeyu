@@ -62,6 +62,15 @@ class User extends Authenticatable
     }
 
     /**
+     * Retorna la caja abierta por otra persona, si existe.
+     * Mientras haya una, nadie más puede abrir una caja.
+     */
+    public function cajaAbiertaDeOtro(): ?Caja
+    {
+        return Caja::abiertas()->with('user')->where('user_id', '!=', $this->id)->first();
+    }
+
+    /**
      * Relación con las ventas realizadas por el usuario.
      */
     public function ventas(): HasMany
