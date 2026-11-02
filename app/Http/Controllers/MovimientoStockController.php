@@ -7,6 +7,7 @@ use App\Http\Requests\StoreIngresoStockRequest;
 use App\Models\MovimientoStock;
 use App\Models\Producto;
 use App\Models\User;
+use App\Services\AlertaStockBajo;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -175,7 +176,10 @@ class MovimientoStockController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        $movimiento = DB::transaction(function () use ($request, $user) {
+        // Productos que quedan en su stock mínimo al confirmarse el descarte.
+        $alertasStock = [];
+
+        $movimiento = DB::transaction(function () use ($request, $user, &$alertasStock) {
             $producto = Producto::whereKey($request->validated('producto_id'))
                 ->lockForUpdate()
                 ->first();
@@ -208,6 +212,13 @@ class MovimientoStockController extends Controller
                 'stock' => $stockPosterior,
             ]);
 
+            $alertasStock[] = [
+                'nombre' => $producto->nombre,
+                'stock' => $stockPosterior,
+                'stock_minimo' => (int) $producto->stock_minimo,
+                'stock_anterior' => $stockAnterior,
+            ];
+
             // Crear el registro inmutable del descarte
             return MovimientoStock::create([
                 'producto_id' => $producto->id,
@@ -219,6 +230,9 @@ class MovimientoStockController extends Controller
                 'observacion' => $request->validated('motivo'),
             ]);
         });
+
+        // Aviso de stock bajo a los administradores (nunca interrumpe el descarte).
+        app(AlertaStockBajo::class)->porOperacion($alertasStock, "Descarte #{$movimiento->id}", $user->name);
 
         return redirect()->route('movimientos-stock.show', $movimiento)
             ->with('success', 'Descarte de mercadería registrado exitosamente.');

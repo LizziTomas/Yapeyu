@@ -11,6 +11,9 @@ class Configuracion extends Model
     protected $fillable = [
         'nombre_local',
         'usa_centavos',
+        'avisos_stock',
+        'resumen_stock_dias',
+        'resumen_stock_ultimo_envio',
     ];
 
     /**
@@ -22,6 +25,9 @@ class Configuracion extends Model
     {
         return [
             'usa_centavos' => 'boolean',
+            'avisos_stock' => 'boolean',
+            'resumen_stock_dias' => 'integer',
+            'resumen_stock_ultimo_envio' => 'date',
         ];
     }
 
@@ -34,6 +40,8 @@ class Configuracion extends Model
         return once(fn () => static::firstOrCreate([], [
             'nombre_local' => 'Casa Yacobone',
             'usa_centavos' => true,
+            'avisos_stock' => true,
+            'resumen_stock_dias' => 3,
         ]));
     }
 

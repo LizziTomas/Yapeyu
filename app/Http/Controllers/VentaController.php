@@ -9,6 +9,7 @@ use App\Models\MovimientoStock;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
+use App\Services\AlertaStockBajo;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -225,7 +226,11 @@ class VentaController extends Controller
                 ->with('error', 'Debes abrir una caja antes de poder registrar una venta.');
         }
 
-        $venta = DB::transaction(function () use ($request, $user, $caja) {
+        // Productos que quedan en su stock mínimo al confirmarse la venta: se
+        // avisa recién cuando la transacción termina, nunca antes.
+        $alertasStock = [];
+
+        $venta = DB::transaction(function () use ($request, $user, $caja, &$alertasStock) {
             // 1. Consolidar el payload:
             //    - $renglones: un renglón por cada combinación producto + descuento (mismo descuento se suma)
             //    - $itemsConsolidados: cantidad total pedida de cada producto, para controlar el stock
@@ -288,6 +293,13 @@ class VentaController extends Controller
 
                 $producto->update(['stock' => $stockPosterior]);
 
+                $alertasStock[] = [
+                    'nombre' => $producto->nombre,
+                    'stock' => $stockPosterior,
+                    'stock_minimo' => (int) $producto->stock_minimo,
+                    'stock_anterior' => $stockAnterior,
+                ];
+
                 $movimientosPendientes[] = [
                     'producto_id' => $producto->id,
                     'cantidad' => $cantidad,
@@ -347,6 +359,9 @@ class VentaController extends Controller
 
             return $ventaCreada;
         });
+
+        // Aviso de stock bajo a los administradores (nunca interrumpe la venta).
+        app(AlertaStockBajo::class)->porOperacion($alertasStock, "Venta #{$venta->id}", $user->name);
 
         return redirect()->route('ventas.show', $venta)
             ->with('success', "Venta #{$venta->id} registrada exitosamente.");

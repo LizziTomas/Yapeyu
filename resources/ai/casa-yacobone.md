@@ -58,6 +58,25 @@ Dentro del historial de un producto se puede consultar el stock entre dos
 fechas: el sistema reconstruye el stock al inicio y al final del período a
 partir de los movimientos registrados.
 
+## Avisos de stock bajo
+
+El sistema puede enviar avisos por correo a los administradores cuando un
+producto queda con poco stock.
+
+Cuando una venta o un descarte deja un producto en su stock mínimo o por
+debajo, se envía un mail automático a todos los usuarios con rol
+administrador. Solo se avisa en el momento en que el producto cruza el
+mínimo: mientras siga bajo, el aviso no se repite.
+
+Además, cada cierta cantidad de días (configurable entre 1 y 30) se envía
+un resumen por correo con todos los productos que siguen por debajo del
+mínimo.
+
+La frecuencia y el encendido o apagado de los avisos se manejan desde la
+pantalla de Configuración del local. Los mails se envían después de
+confirmar la operación, así que un error de correo no afecta la venta ni el
+descarte.
+
 ## Usuarios y permisos
 
 La administración de usuarios y la configuración del local están

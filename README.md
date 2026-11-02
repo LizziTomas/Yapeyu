@@ -35,6 +35,19 @@ Proyecto académico — Trabajo final de la carrera.
   al inicio y al final del período elegido, usando los movimientos registrados.
 - **El stock de cada producto se reconcilia exactamente con la suma de sus movimientos.**
 
+### Avisos de stock bajo por correo
+- **Aviso inmediato**: cuando una venta o un descarte deja un producto en su stock mínimo
+  (o por debajo), se envía un mail a **todos los usuarios con rol administrador**.
+- Solo se notifica el **cruce** del mínimo: mientras el producto siga bajo, no se repite el aviso.
+  Si una misma operación deja varios productos bajo mínimo, llega **un solo mail** con todos.
+- **Resumen periódico**: cada la cantidad de días configurada (entre 1 y 30, por defecto 3) se
+  envía un mail con **todos** los productos activos que siguen por debajo del mínimo.
+- La frecuencia y el encendido/apagado de los avisos se manejan desde **Configuración del local**.
+- El mail se envía **después** de confirmar la operación: si la venta falla, no se avisa nada.
+  Un error de correo nunca interrumpe la venta ni el descarte (queda registrado en el log).
+- Requiere SMTP configurado (ver Instalación) y el planificador de Laravel en ejecución
+  para el resumen periódico.
+
 ### Caja
 - Apertura y cierre de caja por turno, con monto inicial en efectivo.
 - **Una sola caja abierta a la vez en todo el negocio**: nadie puede abrir otra hasta que se cierre.
@@ -117,6 +130,21 @@ ollama pull embeddinggemma:300m
 > `php artisan config:clear`.
 > Sin Ollama activo, el resto del sistema funciona normalmente y solo el asistente
 > devuelve un error de conexión.
+
+> **Avisos por correo:** para que los avisos de stock bajo lleguen de verdad hay que
+> configurar SMTP en `.env`. Por defecto `MAIL_MAILER=log` solo escribe los mails en
+> `storage/logs/laravel.log`. Con Gmail alcanza con una **contraseña de aplicación**
+> (el ejemplo completo está comentado en `.env.example`). Después de cambiarlo,
+> ejecutá `php artisan config:clear` y verificá con:
+>
+> ```bash
+> php artisan stock:probar-mail --to=tu-correo@dominio.com
+> ```
+>
+> El **resumen periódico** necesita que el planificador esté en ejecución:
+> `php artisan schedule:work` en desarrollo, o una tarea programada del sistema que
+> ejecute `php artisan schedule:run` cada minuto. Para forzar un envío manual:
+> `php artisan stock:resumen --force`.
 
 > **Nota:** en el entorno `local`, el `DatabaseSeeder` también carga **datos de demostración**
 > (productos, cajas, ventas de los últimos 60 días, anulaciones y descartes) para poder
