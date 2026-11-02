@@ -30,6 +30,7 @@ Proyecto académico — Trabajo final de la carrera.
 - Historial con filtros por producto, usuario y tipo, con detalle de stock anterior/posterior.
 - **Resumen por producto** (vista agrupada): un renglón por producto con su último movimiento,
   que permite ver **cuándo ingresó** la mercadería y abrir su historial completo.
+  Por defecto muestra el mes en curso (del día 1 a hoy); las fechas se pueden cambiar.
 - **Stock entre dos fechas**: dentro del historial de un producto se reconstruye el stock
   al inicio y al final del período elegido, usando los movimientos registrados.
 - **El stock de cada producto se reconcilia exactamente con la suma de sus movimientos.**

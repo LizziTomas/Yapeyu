@@ -50,6 +50,8 @@ incluyendo la cantidad ingresada, el stock anterior y el posterior.
 
 Existe además una vista de resumen por producto, que agrupa los movimientos
 y permite ver en qué momento ingresó cada producto y consultar su historial.
+Por defecto muestra el mes en curso, desde el día 1 hasta hoy, y las fechas
+Desde y Hasta se pueden cambiar para consultar otros períodos.
 
 Dentro del historial de un producto se puede consultar el stock entre dos
 fechas: el sistema reconstruye el stock al inicio y al final del período a

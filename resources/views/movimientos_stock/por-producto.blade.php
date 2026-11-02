@@ -56,7 +56,7 @@
                     <button type="submit" class="btn btn-secondary btn-sm flex-fill">
                         <i class="bi bi-search me-1"></i> Filtrar
                     </button>
-                    @if (request()->hasAny(['search', 'fecha_desde', 'fecha_hasta']))
+                    @if ($hayFiltros)
                         <a href="{{ route('movimientos-stock.por-producto') }}" class="btn btn-outline-secondary btn-sm">
                             Limpiar
                         </a>

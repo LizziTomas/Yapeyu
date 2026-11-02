@@ -235,6 +235,17 @@ class MovimientoStockController extends Controller
     {
         Gate::authorize('viewAny', MovimientoStock::class);
 
+        // Para mostrar "Limpiar" solo si la persona filtró algo (se calcula antes de completar las fechas)
+        $hayFiltros = $request->hasAny(['search', 'fecha_desde', 'fecha_hasta']);
+
+        // Por defecto se ve el mes en curso, en hora argentina. Si la URL ya trae una fecha
+        // (aunque esté vacía, para no limitar ese extremo), se respeta la elegida.
+        $hoy = Carbon::now('America/Argentina/Buenos_Aires');
+        $request->mergeIfMissing([
+            'fecha_desde' => $hoy->copy()->startOfMonth()->toDateString(),
+            'fecha_hasta' => $hoy->toDateString(),
+        ]);
+
         [$desde, $hasta] = $this->rangoDeFechas($request);
         $busqueda = $request->input('search');
 
@@ -284,7 +295,7 @@ class MovimientoStockController extends Controller
             $producto->setAttribute('ultimo_ingreso_at', $producto->ultimo_ingreso ? Carbon::parse($producto->ultimo_ingreso) : null);
         });
 
-        return view('movimientos_stock.por-producto', compact('productos'));
+        return view('movimientos_stock.por-producto', compact('productos', 'hayFiltros'));
     }
 
     /**

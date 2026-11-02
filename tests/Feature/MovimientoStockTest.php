@@ -425,6 +425,65 @@ test('el resumen por producto agrupa entradas y salidas del período', function 
         ->and($fila->stock_final_periodo)->toBe(8);
 });
 
+test('el resumen por producto muestra por defecto el mes en curso y permite consultar otras fechas', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $producto = Producto::factory()->create(['stock' => 30, 'activo' => true]);
+
+    $registrar = function (int $cantidad, string $fecha) use ($producto, $admin) {
+        MovimientoStock::factory()->create([
+            'producto_id' => $producto->id,
+            'user_id' => $admin->id,
+            'tipo' => MovimientoStock::TIPO_INGRESO,
+            'cantidad' => $cantidad,
+            'stock_anterior' => 0,
+            'stock_posterior' => $cantidad,
+        ])->forceFill(['created_at' => $fecha, 'updated_at' => $fecha])->save();
+    };
+
+    // La base guarda UTC y Argentina es UTC-3
+    $registrar(1, '2026-11-01 02:59:00'); // 31/10 23:59 en Argentina: mes anterior
+    $registrar(2, '2026-11-01 03:00:00'); // 01/11 00:00 en Argentina: mes en curso
+    $registrar(4, '2026-11-15 12:00:00'); // Hoy
+
+    $this->travelTo('2026-11-15 15:00:00');
+
+    // Sin fechas en la URL: del día 1 del mes hasta hoy
+    $porDefecto = $this->actingAs($admin)->get(route('movimientos-stock.por-producto'));
+
+    $porDefecto->assertSee('value="2026-11-01"', false)
+        ->assertSee('value="2026-11-15"', false)
+        ->assertDontSee('Limpiar');
+    expect($porDefecto->viewData('productos')->first()->entradas_periodo)->toBe(6);
+
+    // Fechas elegidas: se respetan y se puede volver al mes en curso
+    $elegidas = $this->actingAs($admin)->get(route('movimientos-stock.por-producto', [
+        'fecha_desde' => '2026-10-31',
+        'fecha_hasta' => '2026-10-31',
+    ]));
+
+    $elegidas->assertSee('value="2026-10-31"', false)->assertSee('Limpiar');
+    expect($elegidas->viewData('productos')->first()->entradas_periodo)->toBe(1);
+
+    // Campos vacíos a propósito: sin límite de fechas
+    $sinLimite = $this->actingAs($admin)->get(route('movimientos-stock.por-producto').'?fecha_desde=&fecha_hasta=');
+    expect($sinLimite->viewData('productos')->first()->entradas_periodo)->toBe(7);
+
+    // A las 23 del último día del mes en Argentina ya es el mes siguiente en UTC, pero sigue siendo noviembre
+    $this->travelTo('2026-12-01 02:00:00');
+
+    $this->actingAs($admin)->get(route('movimientos-stock.por-producto'))
+        ->assertSee('value="2026-11-01"', false)
+        ->assertSee('value="2026-11-30"', false);
+
+    // Al empezar el mes siguiente, el rango se mueve solo
+    $this->travelTo('2026-12-01 03:00:00');
+
+    $this->actingAs($admin)->get(route('movimientos-stock.por-producto'))
+        ->assertSee('value="2026-12-01"', false);
+});
+
 test('el resumen por producto calcula el stock entre dos fechas', function () {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
