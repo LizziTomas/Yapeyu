@@ -9,6 +9,14 @@ El sistema permite consultar productos activos y buscarlos por nombre.
 Los administradores pueden crear productos, editar sus datos y
 desactivarlos. La desactivación no elimina físicamente el registro.
 
+Los administradores también pueden importar varios productos desde un
+archivo CSV o pegando celdas desde Excel. El sistema muestra una
+previsualización antes de guardar. Si el producto ya existe por nombre,
+se actualizan sus precios y su stock mínimo, pero no su stock. El stock
+inicial de un producto nuevo se registra como un movimiento de ingreso.
+La importación es todo o nada: si una fila tiene errores, no se guarda
+ninguna.
+
 Cada producto tiene información como nombre, precio y stock.
 El asistente no puede consultar las cantidades actuales directamente.
 
@@ -48,6 +56,11 @@ Los usuarios autorizados pueden registrar ingresos de mercadería.
 
 El sistema actualiza el stock del producto y registra el movimiento,
 incluyendo la cantidad ingresada, el stock anterior y el posterior.
+
+Además existe la carga masiva de stock: una tabla con todos los productos
+activos donde se carga una cantidad por producto. El sistema registra un
+movimiento de ingreso por cada producto con cantidad mayor a cero, todo
+en una sola operación.
 
 Existe además una vista de resumen por producto, que agrupa los movimientos
 y permite ver en qué momento ingresó cada producto y consultar su historial.

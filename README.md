@@ -19,11 +19,17 @@ Proyecto académico — Trabajo final de la carrera.
 - Alta, edición, baja y listado de productos (solo administradores gestionan; todos consultan).
 - Control de stock actual, stock mínimo, precio de costo y precio de venta.
 - Estado activo/inactivo y alertas de stock bajo.
+- **Importación de productos** (solo administradores): se puede subir un archivo CSV o pegar celdas
+  desde Excel, con previsualización y validación fila por fila. Si el producto ya existe por nombre,
+  se actualizan sus precios y stock mínimo (el stock no se modifica). El stock inicial de un producto
+  nuevo se registra como movimiento de ingreso. La importación es **todo o nada**.
 - Un producto recién ingresado queda disponible para la venta aunque su stock todavía no haya
   sido cargado (ver **ingreso rápido** en Ventas).
 
 ### Movimientos de stock (trazabilidad completa del inventario)
 - **Ingreso** de mercadería (entrada manual de stock).
+- **Ingreso masivo**: tabla de productos activos con un campo cantidad; genera un movimiento de
+  ingreso por producto en una sola transacción.
 - **Venta**: cada venta descuenta stock y genera automáticamente su movimiento histórico.
 - **Anulación de venta**: estorna el stock y registra el movimiento de devolución.
 - **Descarte**: registra merma/rotura/vencimiento con un motivo (solo administradores).

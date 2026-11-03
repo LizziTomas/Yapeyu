@@ -13,6 +13,9 @@
                 </a>
             @endcan
             @can('crear productos')
+                <a href="{{ route('productos.importar') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-upload me-1"></i> Importar productos
+                </a>
                 <a href="{{ route('productos.create') }}" class="btn btn-primary btn-sm">
                     <i class="bi bi-plus-lg me-1"></i> Nuevo Producto
                 </a>

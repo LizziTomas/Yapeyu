@@ -11,6 +11,9 @@
                 </a>
             @endcan
             @can('crear ingresos stock')
+                <a href="{{ route('movimientos-stock.ingreso-masivo') }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-table me-1"></i> Ingreso masivo
+                </a>
                 <a href="{{ route('movimientos-stock.create') }}" class="btn btn-primary btn-sm">
                     <i class="bi bi-box-arrow-in-down me-1"></i> Registrar Ingreso
                 </a>

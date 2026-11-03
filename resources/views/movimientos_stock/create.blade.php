@@ -6,9 +6,14 @@
                     <h1 class="h4 mb-0 fw-semibold">Registrar Ingreso de Mercadería</h1>
                     <p class="text-muted small mb-0">Aumenta el stock disponible y genera el registro en el historial</p>
                 </div>
-                <a href="{{ route('movimientos-stock.index') }}" class="btn btn-outline-secondary btn-sm">
-                    Volver al Historial
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('movimientos-stock.index') }}" class="btn btn-outline-secondary btn-sm">
+                        Volver al Historial
+                    </a>
+                    <a href="{{ route('movimientos-stock.ingreso-masivo') }}" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-table me-1"></i> Carga masiva
+                    </a>
+                </div>
             </div>
 
             <div class="card border-0 shadow-sm">

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDescarteStockRequest;
+use App\Http\Requests\StoreIngresoMasivoRequest;
 use App\Http\Requests\StoreIngresoStockRequest;
 use App\Models\MovimientoStock;
 use App\Models\Producto;
@@ -133,6 +134,91 @@ class MovimientoStockController extends Controller
 
         return redirect()->route('movimientos-stock.show', $movimiento)
             ->with('success', 'Ingreso de mercadería registrado exitosamente.');
+    }
+
+    /**
+     * Muestra el formulario de carga masiva: todos los productos activos con un campo cantidad.
+     */
+    public function ingresoMasivoForm(): View
+    {
+        Gate::authorize('create', MovimientoStock::class);
+
+        $productos = Producto::activos()->orderBy('nombre')->get();
+
+        return view('movimientos_stock.ingreso-masivo', compact('productos'));
+    }
+
+    /**
+     * Registra un ingreso por cada producto que tenga una cantidad mayor a 0.
+     *
+     * Todo se guarda en una sola transacción: si un producto dejó de estar activo
+     * o no existe, no se registra ningún movimiento.
+     */
+    public function ingresoMasivoStore(StoreIngresoMasivoRequest $request): RedirectResponse
+    {
+        Gate::authorize('create', MovimientoStock::class);
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        // Solo se consideran las cantidades mayores a 0 (el formulario permite dejar en blanco o 0).
+        $cantidades = collect($request->validated('cantidades'))
+            ->map(fn ($cantidad) => (int) $cantidad)
+            ->filter(fn (int $cantidad) => $cantidad > 0);
+
+        $observacion = trim((string) $request->validated('observacion'));
+        $observacion = $observacion !== '' ? $observacion : 'Ingreso masivo de mercadería';
+
+        $registrados = DB::transaction(function () use ($cantidades, $observacion, $user) {
+            $productos = Producto::whereIn('id', $cantidades->keys())
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            if ($productos->count() !== $cantidades->count()) {
+                throw ValidationException::withMessages([
+                    'cantidades' => 'Uno de los productos ya no existe. Actualizá la pantalla e intentá de nuevo.',
+                ]);
+            }
+
+            $ahora = now();
+            $movimientos = [];
+
+            foreach ($cantidades as $productoId => $cantidad) {
+                $producto = $productos->get($productoId);
+
+                if (! $producto->activo) {
+                    throw ValidationException::withMessages([
+                        'cantidades' => "El producto \"{$producto->nombre}\" ya no está activo.",
+                    ]);
+                }
+
+                $stockAnterior = (int) $producto->stock;
+                $stockPosterior = $stockAnterior + $cantidad;
+
+                $producto->update(['stock' => $stockPosterior]);
+
+                $movimientos[] = [
+                    'producto_id' => $producto->id,
+                    'user_id' => $user->id,
+                    'tipo' => MovimientoStock::TIPO_INGRESO,
+                    'cantidad' => $cantidad,
+                    'stock_anterior' => $stockAnterior,
+                    'stock_posterior' => $stockPosterior,
+                    'observacion' => $observacion,
+                    'created_at' => $ahora,
+                    'updated_at' => $ahora,
+                ];
+            }
+
+            // Inserción en lote de todos los movimientos.
+            MovimientoStock::insert($movimientos);
+
+            return count($movimientos);
+        });
+
+        return redirect()->route('movimientos-stock.index')
+            ->with('success', "Se registraron {$registrados} ".($registrados === 1 ? 'ingreso de mercadería' : 'ingresos de mercadería').'.');
     }
 
     /**

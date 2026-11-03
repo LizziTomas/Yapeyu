@@ -6,6 +6,7 @@ use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MovimientoStockController;
 use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\ProductoImportacionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReporteVentaController;
 use App\Http\Controllers\UserController;
@@ -48,6 +49,9 @@ Route::middleware('auth')->group(function () {
     // Módulo de Movimientos de Stock (Historial, Ingresos y Descartes de Mercadería)
     Route::get('movimientos-stock', [MovimientoStockController::class, 'index'])->name('movimientos-stock.index');
     Route::get('movimientos-stock/crear', [MovimientoStockController::class, 'create'])->name('movimientos-stock.create');
+    // Carga masiva de stock (antes de las rutas comodín)
+    Route::get('movimientos-stock/ingreso-masivo', [MovimientoStockController::class, 'ingresoMasivoForm'])->name('movimientos-stock.ingreso-masivo');
+    Route::post('movimientos-stock/ingreso-masivo', [MovimientoStockController::class, 'ingresoMasivoStore'])->name('movimientos-stock.ingreso-masivo.store');
     Route::get('movimientos-stock/descartar', [MovimientoStockController::class, 'descartarForm'])->name('movimientos-stock.descartar');
     Route::post('movimientos-stock/descartar', [MovimientoStockController::class, 'descartarStore'])->name('movimientos-stock.descartar.store');
     // Resumen agrupado por producto y stock entre dos fechas (antes de la ruta comodín)
@@ -67,6 +71,15 @@ Route::middleware('auth')->group(function () {
 // Rutas de administración (SOLO para administradores)
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('usuarios', UserController::class);
+
+    // Importación de productos desde Excel/CSV (usa el permiso "crear productos").
+    // Se declara antes del resource para que ninguna ruta comodín la capture.
+    Route::get('productos/importar', [ProductoImportacionController::class, 'form'])->name('productos.importar');
+    Route::get('productos/importar/plantilla', [ProductoImportacionController::class, 'plantilla'])->name('productos.importar.plantilla');
+    Route::post('productos/importar/analizar', [ProductoImportacionController::class, 'analizar'])->name('productos.importar.analizar');
+    Route::get('productos/importar/previsualizar', [ProductoImportacionController::class, 'previsualizar'])->name('productos.importar.previsualizar');
+    Route::post('productos/importar/confirmar', [ProductoImportacionController::class, 'confirmar'])->name('productos.importar.confirmar');
+
     Route::resource('productos', ProductoController::class)->except(['index', 'show']);
 
     // Configuración del local (nombre y uso de centavos)

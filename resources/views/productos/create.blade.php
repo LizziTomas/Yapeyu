@@ -3,9 +3,14 @@
         <div class="col-lg-7 col-md-9">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h1 class="h4 mb-0 fw-semibold">Nuevo Producto</h1>
-                <a href="{{ route('productos.index') }}" class="btn btn-outline-secondary btn-sm">
-                    Volver a la lista
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('productos.index') }}" class="btn btn-outline-secondary btn-sm">
+                        Volver a la lista
+                    </a>
+                    <a href="{{ route('productos.importar') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-upload me-1"></i> Importar varios
+                    </a>
+                </div>
             </div>
 
             <div class="card border-0 shadow-sm">

@@ -22,9 +22,11 @@ function urlsDelSistema(User $usuario): array
         route('dashboard'),
         route('productos.index'),
         route('productos.create'),
+        route('productos.importar'),
         route('productos.edit', Producto::first()),
         route('movimientos-stock.index'),
         route('movimientos-stock.create'),
+        route('movimientos-stock.ingreso-masivo'),
         route('movimientos-stock.descartar'),
         route('movimientos-stock.show', MovimientoStock::first()),
         route('movimientos-stock.por-producto'),
@@ -69,7 +71,13 @@ test('el vendedor nunca recibe un error del servidor y no entra a las pantallas 
         $this->assertLessThan(500, $estado, "La pantalla {$url} respondió {$estado}");
     }
 
-    foreach ([route('usuarios.index'), route('productos.create'), route('configuracion.edit')] as $url) {
+    foreach ([
+        route('usuarios.index'),
+        route('productos.create'),
+        route('productos.importar'),
+        route('movimientos-stock.ingreso-masivo'),
+        route('configuracion.edit'),
+    ] as $url) {
         $this->actingAs($vendedor)->get($url)->assertForbidden();
     }
 });
