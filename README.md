@@ -96,9 +96,9 @@ Proyecto académico — Trabajo final de la carrera.
 
 - **PHP** >= 8.3
 - **Composer**
-- **SQLite** (por defecto, no requiere servidor de base de datos) o MySQL
-- Extensiones PHP estándar de Laravel (`pdo`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`)
-- **[Ollama](https://ollama.com/download)** (solo para el Asistente IA)
+- **MySQL**
+- Extensiones PHP de Laravel (`pdo`, `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`)
+- **[Ollama](https://ollama.com/download)** (solo para el Asistente IA actual)
 
 ---
 
@@ -117,9 +117,10 @@ copy .env.example .env       # Windows
 # cp .env.example .env       # Linux / macOS
 php artisan key:generate
 
-# 4. Crear la base de datos SQLite
-type nul > database/database.sqlite      # Windows
-# touch database/database.sqlite         # Linux / macOS
+# 4. Configurar MySQL
+# Iniciar MySQL desde Laragon.
+# Crear una base de datos llamada yapeyu desde phpMyAdmin.
+# Configurar las credenciales correspondientes en el archivo .env.
 
 # 5. Ejecutar migraciones y datos iniciales (roles, permisos y admin)
 php artisan migrate --seed
@@ -226,7 +227,7 @@ tests/Feature/          → Pruebas de funcionalidad
 |-------------------|-----------------------------------------|
 | Framework         | Laravel 13                              |
 | Lenguaje          | PHP 8.3                                 |
-| Base de datos     | SQLite (desarrollo) / MySQL (opcional)  |
+| Base de datos     | MySQL                                   |
 | Autenticación     | Laravel Breeze                          |
 | Roles y permisos  | Spatie Laravel Permission               |
 | Frontend          | Blade + Bootstrap 5 (CDN)               |
