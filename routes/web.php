@@ -60,7 +60,7 @@ Route::middleware('auth')->group(function () {
     Route::post('movimientos-stock', [MovimientoStockController::class, 'store'])->name('movimientos-stock.store');
     Route::get('movimientos-stock/{movimientoStock}', [MovimientoStockController::class, 'show'])->name('movimientos-stock.show');
 
-    // Rutas del asistente: pantalla del chat y envio de mensajes a Ollama.
+    // Rutas del asistente: pantalla del chat y envio de mensajes al proveedor de IA.
     Route::get('asistente', [ChatIAController::class, 'index'])->name('chat-ia.index');
     Route::post('asistente/mensaje', [ChatIAController::class, 'mensaje'])->name('chat-ia.mensaje');
     // Módulo de Reportes de Ventas por Período

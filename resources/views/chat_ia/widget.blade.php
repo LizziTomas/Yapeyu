@@ -197,10 +197,11 @@
         .querySelector('meta[name="csrf-token"]')
         .getAttribute('content');
 
-    const storageKey = @json('chat_ia_history_' . auth()->id());
+    const storageKey = @json('chat_ia_history_sdk_' . auth()->id());
+    const conversationKey = @json('chat_ia_conversation_' . auth()->id());
 
     const greeting =
-        '¡Hola! Puedo ayudarte a utilizar Casa Yacobone. ' +
+        'Hola! Puedo ayudarte a utilizar Casa Yacobone. ' +
         'Preguntame sobre productos, cajas, ventas o movimientos de stock.';
 
     function loadHistory() {
@@ -225,7 +226,15 @@
         }
     }
 
+    let conversationId = localStorage.getItem(conversationKey);
     let history = loadHistory();
+
+    // Si no existe una conversacion asociada, no mostramos
+    // mensajes antiguos que no forman parte de ella.
+    if (!conversationId) {
+        history = [];
+        localStorage.removeItem(storageKey);
+    }
 
     function saveHistory() {
         try {
@@ -235,7 +244,7 @@
             );
         } catch {
             status.textContent =
-                'No se pudo guardar el historial en este navegador.';
+                'No se pudo guardar la copia local del historial.';
         }
     }
 
@@ -252,7 +261,6 @@
             ? 'chat-ia-message rounded-3 px-3 py-2 bg-primary text-white'
             : 'chat-ia-message rounded-3 px-3 py-2 border bg-body-tertiary';
 
-        // Mostramos el texto sin interpretarlo como código HTML.
         bubble.textContent = text;
 
         row.appendChild(bubble);
@@ -275,7 +283,7 @@
 
         dots.className = 'chat-ia-typing';
         dots.setAttribute('role', 'status');
-        dots.setAttribute('aria-label', 'El asistente está escribiendo');
+        dots.setAttribute('aria-label', 'El asistente esta escribiendo');
 
         for (let i = 0; i < 3; i++) {
             dots.appendChild(document.createElement('span'));
@@ -310,18 +318,29 @@
 
     renderHistory();
 
+    input.addEventListener('keydown', event => {
+        if (
+            event.key === 'Enter' &&
+            !event.shiftKey &&
+            !event.isComposing
+        ) {
+            event.preventDefault();
+
+            if (input.value.trim() && !sendButton.disabled) {
+                form.requestSubmit(sendButton);
+            }
+        }
+    });
     clearButton.addEventListener('click', () => {
         history = [];
+        conversationId = null;
 
-        try {
-            localStorage.removeItem(storageKey);
-        } catch {
-            // El historial en memoria igualmente queda vacio.
-        }
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(conversationKey);
 
         renderHistory();
 
-        status.textContent = 'Nueva conversación iniciada.';
+        status.textContent = 'Nueva conversacion iniciada.';
         input.value = '';
         input.focus();
     });
@@ -337,15 +356,10 @@
 
         appendMessage('user', text);
 
-        const outgoingHistory = [
-            ...history,
-            { role: 'user', content: text }
-        ].slice(-10);
-
         input.value = '';
         input.disabled = true;
         sendButton.disabled = true;
-        status.textContent = 'El asistente está escribiendo...';
+        status.textContent = 'El asistente esta escribiendo...';
 
         const typing = mostrarEscribiendo();
 
@@ -358,7 +372,8 @@
                     'X-CSRF-TOKEN': csrfToken
                 },
                 body: JSON.stringify({
-                    messages: outgoingHistory
+                    message: text,
+                    conversation_id: conversationId
                 })
             });
 
@@ -377,14 +392,31 @@
                 );
             }
 
-            if (typeof data.reply !== 'string' || !data.reply.trim()) {
+            if (
+                typeof data.reply !== 'string' ||
+                !data.reply.trim()
+            ) {
                 throw new Error(
-                    'El asistente no devolvió una respuesta válida.'
+                    'El asistente no devolvio una respuesta valida.'
                 );
             }
 
+            if (
+                typeof data.conversation_id !== 'string' ||
+                !data.conversation_id.trim()
+            ) {
+                throw new Error(
+                    'El servidor no devolvio el identificador de la conversacion.'
+                );
+            }
+
+            conversationId = data.conversation_id;
+
+            localStorage.setItem(conversationKey, conversationId);
+
             history = [
-                ...outgoingHistory,
+                ...history,
+                { role: 'user', content: text },
                 { role: 'assistant', content: data.reply }
             ].slice(-10);
 
@@ -392,7 +424,7 @@
             appendMessage('assistant', data.reply);
 
             status.textContent =
-                'Podés seguir consultando sobre el sistema.';
+                'Podes seguir consultando sobre el sistema.';
         } catch (error) {
             appendMessage(
                 'assistant',
@@ -401,7 +433,7 @@
             );
 
             status.textContent =
-                'Verificá que Ollama esté funcionando.';
+                'No se pudo completar la consulta. Verifica la conexion e intenta nuevamente.';
         } finally {
             ocultarEscribiendo(typing);
 

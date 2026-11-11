@@ -18,7 +18,7 @@ La importación es todo o nada: si una fila tiene errores, no se guarda
 ninguna.
 
 Cada producto tiene información como nombre, precio y stock.
-El asistente no puede consultar las cantidades actuales directamente.
+El asistente no accede directamente a la base de datos. Para consultar productos y cantidades actuales debe utilizar la herramienta ConsultarProductos.
 
 Un producto recién ingresado puede quedar disponible para la venta aunque
 todavía no tenga stock cargado, mediante el ingreso rápido (ver Ventas).

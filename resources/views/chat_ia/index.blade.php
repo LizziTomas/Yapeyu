@@ -198,7 +198,7 @@
                     );
 
                     status.textContent =
-                        'Si el problema continúa, verificá que Ollama esté funcionando.';
+                        'Verifica la configuracion del proveedor de IA e intentalo nuevamente.';
                 } finally {
                     input.disabled = false;
                     sendButton.disabled = false;
