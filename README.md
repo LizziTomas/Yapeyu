@@ -83,7 +83,7 @@ Proyecto académico — Trabajo final de la carrera.
 - Responde únicamente sobre el funcionamiento del sistema, tomando como base el documento `resources/ai/casa-yacobone.md`.
 - **Filtro de tema** por similitud semántica: si la consulta no se relaciona con el sistema, el asistente lo indica en lugar de responder.
 - Historial de la conversación guardado en el navegador, por usuario.
-- Requiere [Ollama](https://ollama.com/download) en ejecución (ver instalación).
+- Utiliza Laravel AI SDK y Groq como proveedor de inteligencia artificial.
 
 ### Interfaz
 - **Bootstrap 5** + Bootstrap Icons (vía CDN) con una hoja de estilos propia.
@@ -98,7 +98,7 @@ Proyecto académico — Trabajo final de la carrera.
 - **Composer**
 - **MySQL**
 - Extensiones PHP de Laravel (`pdo`, `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`)
-- **[Ollama](https://ollama.com/download)** (solo para el Asistente IA actual)
+- - **Clave de API de Groq** (solo para utilizar el Asistente IA).
 
 ---
 
@@ -125,18 +125,17 @@ php artisan key:generate
 # 5. Ejecutar migraciones y datos iniciales (roles, permisos y admin)
 php artisan migrate --seed
 
-# 6. (Opcional) Asistente IA: instalar Ollama y descargar los modelos
-#    Descargar Ollama desde https://ollama.com/download y luego:
-ollama pull qwen3:1.7b
-ollama pull embeddinggemma:300m
+# 6. (Opcional) Asistente IA: configurar Groq
+# Configurar GROQ_API_KEY y GROQ_MODEL en el archivo .env.
+php artisan config:clear
 ```
 
-> **Asistente IA:** el widget flotante necesita Ollama en ejecución. Las variables
-> `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_EMBEDDING_MODEL` y `OLLAMA_SCOPE_THRESHOLD`
-> ya traen valores por defecto en `.env.example`; si cambiás alguna, ejecutá
-> `php artisan config:clear`.
-> Sin Ollama activo, el resto del sistema funciona normalmente y solo el asistente
-> devuelve un error de conexión.
+### Asistente IA
+- Chat de ayuda integrado como **widget flotante**, accesible desde cualquier pantalla.
+- Utiliza Laravel AI SDK y Groq para responder consultas sobre el funcionamiento y los datos de Casa Yacobone.
+- Consulta datos actuales mediante herramientas de solo lectura para productos, ventas, cajas, movimientos de stock y reportes.
+- Las consultas respetan los permisos y el alcance de cada usuario.
+- Las conversaciones se almacenan en la base de datos y pueden continuarse desde el historial.
 
 > **Avisos por correo:** para que los avisos de stock bajo lleguen de verdad hay que
 > configurar SMTP en `.env`. Por defecto `MAIL_MAILER=log` solo escribe los mails en
@@ -231,7 +230,7 @@ tests/Feature/          → Pruebas de funcionalidad
 | Autenticación     | Laravel Breeze                          |
 | Roles y permisos  | Spatie Laravel Permission               |
 | Frontend          | Blade + Bootstrap 5 (CDN)               |
-| Asistente IA      | Ollama (`qwen3:1.7b` + `embeddinggemma:300m`) |
+| Asistente IA      | Laravel AI SDK + Groq (`openai/gpt-oss-20b`) |
 | Pruebas           | Pest                                    |
 
 ---
