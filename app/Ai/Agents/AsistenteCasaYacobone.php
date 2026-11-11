@@ -79,7 +79,7 @@ class AsistenteCasaYacobone implements Agent, Conversational, HasTools
         - No utilices ConsultarVentas para obtener estadisticas, resumenes, cantidades totales, importes agrupados ni evolucion temporal.
         - La herramienta devuelve informacion de ventas y sus productos, cantidades y precios historicos.
         - No inventes datos ni afirmes haber consultado ventas si la herramienta no se ejecuto correctamente.
-        - Cuando el usuario solicite ventas actuales, recientes o registradas, ejecuta obligatoriamente ConsultarVentas antes de responder.
+        - Cuando el usuario solicite listar ventas individuales actuales, recientes o registradas, ejecuta obligatoriamente ConsultarVentas antes de responder.
         - Nunca respondas consultas de ventas actuales utilizando datos recordados de conversaciones anteriores.
         - Si ConsultarVentas no se ejecuta correctamente, informa que no fue posible consultar las ventas. Nunca generes una lista de ventas sin resultados obtenidos de la herramienta.
         - La herramienta respeta los permisos: los vendedores solo pueden consultar sus propias ventas.
